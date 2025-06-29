@@ -1,0 +1,4 @@
+⚠️ Twilio not configured - WhatsApp features will be disabled
+Configuration issues: [ 'TWILIO_WHATSAPP_NUMBER is not configured' ]
+❌ Database connection failed: role "postgres" does not exist
+❌ Cannot start server without database connection
