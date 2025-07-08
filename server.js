@@ -1327,7 +1327,10 @@ app.get('/api/pending-leads-count', async (req, res) => {
 // Delete a single lead
 app.delete('/api/leads/:id', async (req, res) => {
   try {
-    const leadId = parseInt(req.params.id);
+    const leadId = parseInt(req.params.id, 10);
+    if (isNaN(leadId)) {
+      return res.status(400).json({ success: false, error: 'Invalid lead ID' });
+    }
     const deletedLead = await db.deleteLead(leadId);
     res.json({ 
       success: true, 
