@@ -416,6 +416,14 @@ const createNewTemplate = () => {
   setShowTemplateModal(true);
 };
 
+// Add this function to clone a preset template
+const cloneTemplate = (template) => {
+  setCurrentTemplate(null); // New template, not editing existing
+  setTemplateName(template.name + ' (Copy)');
+  setHtmlTemplate(template.htmlTemplate || template.html_template || '');
+  setShowTemplateModal(true);
+};
+
 const getFieldDisplayName = (field) => {
   const fieldNames = {
     first_name: 'First Name',
@@ -740,64 +748,88 @@ return (
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => loadTemplate(template)}
-                      style={{
-                        padding: '6px 12px',
-                        background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
-                        color: '#1a1a2e',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-1px)';
-                        e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteTemplate(template.id)}
-                      style={{
-                        padding: '6px 12px',
-                        background: deletingTemplateId === template.id ? 'rgba(220, 53, 69, 1)' : 'rgba(220, 53, 69, 0.8)',
-                        color: '#ffffff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (deletingTemplateId === template.id) {
-                          e.target.style.background = 'rgba(220, 53, 69, 1)';
-                          e.target.style.transform = 'translateY(-1px)';
-                        } else {
-                          e.target.style.background = 'rgba(220, 53, 69, 0.8)';
-                          e.target.style.transform = 'translateY(0)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (deletingTemplateId === template.id) {
-                          e.target.style.background = 'rgba(220, 53, 69, 1)';
-                          e.target.style.transform = 'translateY(0)';
-                        } else {
-                          e.target.style.background = 'rgba(220, 53, 69, 0.8)';
-                          e.target.style.transform = 'translateY(0)';
-                        }
-                      }}
-                    >
-                      {deletingTemplateId === template.id ? 'Deleting...' : 'Delete'}
-                    </button>
+                    {/* Only show Clone for presets (non-numeric IDs) */}
+                    {typeof template.id !== 'number' && (
+                      <button
+                        onClick={() => cloneTemplate(template)}
+                        style={{
+                          padding: '6px 12px',
+                          background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+                          color: '#1a1a2e',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Clone
+                      </button>
+                    )}
+                    {/* Existing Edit/Delete for DB templates */}
+                    {typeof template.id === 'number' && (
+                      <>
+                        <button
+                          onClick={() => loadTemplate(template)}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
+                            color: '#1a1a2e',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteTemplate(template.id)}
+                          style={{
+                            padding: '6px 12px',
+                            background: deletingTemplateId === template.id ? 'rgba(220, 53, 69, 1)' : 'rgba(220, 53, 69, 0.8)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (deletingTemplateId === template.id) {
+                              e.target.style.background = 'rgba(220, 53, 69, 1)';
+                              e.target.style.transform = 'translateY(-1px)';
+                            } else {
+                              e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                              e.target.style.transform = 'translateY(0)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (deletingTemplateId === template.id) {
+                              e.target.style.background = 'rgba(220, 53, 69, 1)';
+                              e.target.style.transform = 'translateY(0)';
+                            } else {
+                              e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                              e.target.style.transform = 'translateY(0)';
+                            }
+                          }}
+                        >
+                          {deletingTemplateId === template.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
