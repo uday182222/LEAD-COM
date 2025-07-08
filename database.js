@@ -95,6 +95,18 @@ const initializeDatabase = async () => {
       );
     `;
     
+    // Create email_templates table
+    const createEmailTemplatesTable = `
+      CREATE TABLE IF NOT EXISTS email_templates (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        html_template TEXT NOT NULL,
+        fields JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+    
     // Create indexes for better performance
     const createIndexes = `
       CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
@@ -115,6 +127,7 @@ const initializeDatabase = async () => {
     await client.query(createLeadsTable);
     await client.query(createCampaignsTable);
     await client.query(createCampaignLeadsTable);
+    await client.query(createEmailTemplatesTable);
     await client.query(createIndexes);
     
     await client.query('COMMIT');
