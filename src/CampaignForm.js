@@ -311,7 +311,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                 <option value="">Choose an HTML template...</option>
                 {htmlTemplates.map((template) => (
                   <option key={template.name} value={template.name}>
-                    {template.displayName} (📄 HTML Template)
+                    {template.name} (📄 HTML Template)
                   </option>
                 ))}
               </select>
