@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
 const TemplateBuilder = ({ selectedFields, onTemplateComplete }) => {
   const [templates, setTemplates] = useState([]);
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [previewLead, setPreviewLead] = useState(0); // Index of sample lead to preview
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState(null);
 
   // HTML template state
   const [htmlTemplate, setHtmlTemplate] = useState('');
@@ -186,18 +191,26 @@ const TemplateBuilder = ({ selectedFields, onTemplateComplete }) => {
   }
 ], []);
 
-// Load templates from localStorage on component mount
+// Fetch templates from backend API on mount
 useEffect(() => {
-  const savedTemplates = localStorage.getItem('emailTemplates');
-  if (savedTemplates) {
-    setTemplates(JSON.parse(savedTemplates));
-  }
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await fetch(`${API_URL}/api/email-templates`);
+      const data = await response.json();
+      if (data.success) {
+        setTemplates(data.templates || []);
+      } else {
+        setTemplates([]);
+      }
+    } catch (error) {
+      setTemplates([]);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+  fetchTemplates();
 }, []);
-
-// Save templates to localStorage whenever templates change
-useEffect(() => {
-  localStorage.setItem('emailTemplates', JSON.stringify(templates));
-}, [templates]);
 
 // Add state for preset variable values
 const [presetVars, setPresetVars] = useState({});
@@ -258,7 +271,7 @@ const sendTestEmail = async () => {
       subject = 'Test Email';
     }
 
-    const response = await fetch('/api/test-email', {
+    const response = await fetch(`${API_URL}/api/test-email`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -286,36 +299,52 @@ const sendTestEmail = async () => {
   }
 };
 
-const saveTemplate = () => {
+// Save or update template via API
+const saveTemplate = async () => {
   if (!templateName.trim()) return;
-  
-  const templateData = {
-    id: currentTemplate ? currentTemplate.id : Date.now(),
-    name: templateName,
-    type: 'html',
-    htmlTemplate: htmlTemplate,
-    fields: selectedFields,
-    createdAt: currentTemplate ? currentTemplate.createdAt : new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  let updatedTemplates;
-  if (currentTemplate) {
-    // Update existing template
-    updatedTemplates = templates.map(t => t.id === currentTemplate.id ? templateData : t);
-  } else {
-    // Add new template
-    updatedTemplates = [...templates, templateData];
-  }
-  
-  setTemplates(updatedTemplates);
-  setTemplateName('');
-  setShowTemplateModal(false);
-  setCurrentTemplate(null);
-  
-  // Call onTemplateComplete to proceed to campaign creation
-  if (onTemplateComplete) {
-    onTemplateComplete(templateData);
+  setSavingTemplate(true);
+  try {
+    const templateData = {
+      name: templateName,
+      html_template: htmlTemplate,
+      fields: selectedFields,
+    };
+    let response, data, newTemplate;
+    if (currentTemplate && currentTemplate.id) {
+      // Update existing template
+      response = await fetch(`${API_URL}/api/email-templates/${currentTemplate.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData),
+      });
+      data = await response.json();
+      if (data.success) {
+        newTemplate = data.template;
+        setTemplates(templates.map(t => t.id === newTemplate.id ? newTemplate : t));
+      }
+    } else {
+      // Create new template
+      response = await fetch(`${API_URL}/api/email-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templateData),
+      });
+      data = await response.json();
+      if (data.success) {
+        newTemplate = data.template;
+        setTemplates([newTemplate, ...templates]);
+      }
+    }
+    setTemplateName('');
+    setShowTemplateModal(false);
+    setCurrentTemplate(null);
+    if (onTemplateComplete && newTemplate) {
+      onTemplateComplete(newTemplate);
+    }
+  } catch (error) {
+    // Optionally show error
+  } finally {
+    setSavingTemplate(false);
   }
 };
 
@@ -349,9 +378,22 @@ const loadTemplate = (template) => {
   setShowTemplateModal(true);
 };
 
-const deleteTemplate = (templateId) => {
-  const updatedTemplates = templates.filter(t => t.id !== templateId);
-  setTemplates(updatedTemplates);
+// Delete template via API
+const deleteTemplate = async (templateId) => {
+  setDeletingTemplateId(templateId);
+  try {
+    const response = await fetch(`${API_URL}/api/email-templates/${templateId}`, {
+      method: 'DELETE',
+    });
+    const data = await response.json();
+    if (data.success) {
+      setTemplates(templates.filter(t => t.id !== templateId));
+    }
+  } catch (error) {
+    // Optionally show error
+  } finally {
+    setDeletingTemplateId(null);
+  }
 };
 
 const createNewTemplate = () => {
@@ -643,87 +685,9 @@ return (
             💾 Saved Templates
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {templates.map((template) => (
-              <div
-                key={template.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px',
-                  background: 'rgba(136, 146, 176, 0.1)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(136, 146, 176, 0.2)'
-                }}
-              >
-                <div>
-                  <div style={{ 
-                    fontWeight: 'bold',
-                    color: '#ffffff',
-                    fontSize: '14px'
-                  }}>
-                    {template.name}
-                  </div>
-                  <div style={{ 
-                    fontSize: '12px',
-                    color: '#8892b0'
-                  }}>
-                    {template.type === 'html' ? '🌐' : '📧'} {template.type === 'html' ? 'HTML' : 'Email'} • {template.fields.length} variables
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => loadTemplate(template)}
-                    style={{
-                      padding: '6px 12px',
-                      background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
-                      color: '#1a1a2e',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-1px)';
-                      e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteTemplate(template.id)}
-                    style={{
-                      padding: '6px 12px',
-                      background: 'rgba(220, 53, 69, 0.8)',
-                      color: '#ffffff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.background = 'rgba(220, 53, 69, 1)';
-                      e.target.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.background = 'rgba(220, 53, 69, 0.8)';
-                      e.target.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-            {templates.length === 0 && (
+            {loadingTemplates ? (
+              <div style={{ color: '#8892b0', fontSize: '14px', textAlign: 'center', padding: '16px' }}>Loading templates...</div>
+            ) : templates.length === 0 ? (
               <div style={{ 
                 color: '#8892b0',
                 fontSize: '14px',
@@ -733,6 +697,97 @@ return (
               }}>
                 No saved templates yet
               </div>
+            ) : (
+              templates.map((template) => (
+                <div
+                  key={template.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px',
+                    background: 'rgba(136, 146, 176, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(136, 146, 176, 0.2)'
+                  }}
+                >
+                  <div>
+                    <div style={{ 
+                      fontWeight: 'bold',
+                      color: '#ffffff',
+                      fontSize: '14px'
+                    }}>
+                      {template.name}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px',
+                      color: '#8892b0'
+                    }}>
+                      {template.type === 'html' ? '🌐' : '📧'} {template.type === 'html' ? 'HTML' : 'Email'} • {template.fields.length} variables
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => loadTemplate(template)}
+                      style={{
+                        padding: '6px 12px',
+                        background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
+                        color: '#1a1a2e',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-1px)';
+                        e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deleteTemplate(template.id)}
+                      style={{
+                        padding: '6px 12px',
+                        background: deletingTemplateId === template.id ? 'rgba(220, 53, 69, 1)' : 'rgba(220, 53, 69, 0.8)',
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (deletingTemplateId === template.id) {
+                          e.target.style.background = 'rgba(220, 53, 69, 1)';
+                          e.target.style.transform = 'translateY(-1px)';
+                        } else {
+                          e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                          e.target.style.transform = 'translateY(0)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (deletingTemplateId === template.id) {
+                          e.target.style.background = 'rgba(220, 53, 69, 1)';
+                          e.target.style.transform = 'translateY(0)';
+                        } else {
+                          e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                          e.target.style.transform = 'translateY(0)';
+                        }
+                      }}
+                    >
+                      {deletingTemplateId === template.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
