@@ -13,10 +13,12 @@ const PendingLeadsManager = ({ onProceedToCampaign, onBackToUpload, onLeadsUpdat
     fetchPendingCount();
   }, []);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
   const fetchPendingLeads = async () => {
     try {
       // Request more leads (1000 instead of default 100)
-      const response = await fetch('/api/leads?limit=1000');
+      const response = await fetch(`${API_URL}/api/leads?limit=1000`);
       if (response.ok) {
         const data = await response.json();
         setPendingLeads(data.leads || []);
@@ -32,7 +34,7 @@ const PendingLeadsManager = ({ onProceedToCampaign, onBackToUpload, onLeadsUpdat
 
   const fetchPendingCount = async () => {
     try {
-      const response = await fetch('/api/pending-leads-count');
+      const response = await fetch(`${API_URL}/api/pending-leads-count`);
       if (response.ok) {
         const data = await response.json();
         setPendingCount(data.count || 0);
@@ -61,7 +63,7 @@ const PendingLeadsManager = ({ onProceedToCampaign, onBackToUpload, onLeadsUpdat
   const deleteLead = async (leadId) => {
     try {
       setDeleting(true);
-      const response = await fetch(`/api/leads/${leadId}`, {
+      const response = await fetch(`${API_URL}/api/leads/${leadId}`, {
         method: 'DELETE'
       });
       
@@ -91,7 +93,7 @@ const PendingLeadsManager = ({ onProceedToCampaign, onBackToUpload, onLeadsUpdat
 
     try {
       setDeleting(true);
-      const response = await fetch('/api/leads/delete-multiple', {
+      const response = await fetch(`${API_URL}/api/leads/delete-multiple`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -125,7 +127,7 @@ const PendingLeadsManager = ({ onProceedToCampaign, onBackToUpload, onLeadsUpdat
 
     try {
       setDeleting(true);
-      const response = await fetch('/api/leads/clear-all', {
+      const response = await fetch(`${API_URL}/api/leads/clear-all`, {
         method: 'DELETE'
       });
       

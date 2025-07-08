@@ -20,12 +20,14 @@ function AppContent() {
   const [pendingLeadsCount, setPendingLeadsCount] = useState(0);
   const { colors, isDarkMode, toggleTheme } = useTheme();
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
   // Fetch available fields from database
   useEffect(() => {
     const fetchAvailableFields = async () => {
       try {
         console.log('Fetching available fields...');
-        const response = await fetch('http://localhost:5001/api/available-fields');
+        const response = await fetch(`${API_URL}/api/available-fields`);
         if (response.ok) {
           const data = await response.json();
           console.log('Available fields received:', data);
@@ -46,7 +48,7 @@ function AppContent() {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5001/api/campaigns');
+        const response = await fetch(`${API_URL}/api/campaigns`);
         if (response.ok) {
           const data = await response.json();
           
@@ -87,7 +89,7 @@ function AppContent() {
   useEffect(() => {
     const fetchPendingLeadsCount = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/pending-leads-count');
+        const response = await fetch(`${API_URL}/api/pending-leads-count`);
         if (response.ok) {
           const data = await response.json();
           setPendingLeadsCount(data.count || 0);
@@ -139,7 +141,7 @@ function AppContent() {
     
     try {
       // Refresh campaigns from backend after creation
-      const response = await fetch('http://localhost:5001/api/campaigns');
+      const response = await fetch(`${API_URL}/api/campaigns`);
       if (response.ok) {
         const data = await response.json();
         setCampaigns(data.campaigns || []);
@@ -173,7 +175,7 @@ function AppContent() {
     // Refresh pending leads count
     const fetchPendingLeadsCount = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/pending-leads-count');
+        const response = await fetch(`${API_URL}/api/pending-leads-count`);
         if (response.ok) {
           const data = await response.json();
           setPendingLeadsCount(data.count || 0);
@@ -187,7 +189,7 @@ function AppContent() {
 
   const startCampaign = async (campaignId) => {
     try {
-      const response = await fetch(`http://localhost:5001/api/campaigns/${campaignId}/start`, {
+      const response = await fetch(`${API_URL}/api/campaigns/${campaignId}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,7 +207,7 @@ function AppContent() {
       toast.success(`Campaign "${result.campaign.name}" started successfully!`);
       
       // Refresh campaigns list to show updated status
-      const campaignsResponse = await fetch('http://localhost:5001/api/campaigns');
+      const campaignsResponse = await fetch(`${API_URL}/api/campaigns`);
       if (campaignsResponse.ok) {
         const data = await campaignsResponse.json();
         
@@ -239,7 +241,7 @@ function AppContent() {
       
       const stopCampaign = async (campaignId) => {
         try {
-          const response = await fetch(`http://localhost:5001/api/campaigns/${campaignId}/stop`, {
+          const response = await fetch(`${API_URL}/api/campaigns/${campaignId}/stop`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -257,7 +259,7 @@ function AppContent() {
           toast.success(`Campaign "${result.campaign.name}" stopped successfully!`);
           
           // Refresh campaigns list to show updated status
-          const campaignsResponse = await fetch('http://localhost:5001/api/campaigns');
+          const campaignsResponse = await fetch(`${API_URL}/api/campaigns`);
           if (campaignsResponse.ok) {
             const data = await campaignsResponse.json();
             

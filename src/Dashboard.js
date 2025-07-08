@@ -46,20 +46,22 @@ const Dashboard = () => {
     fetchEmailConfig();
   }, []);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       
       // Fetch campaigns
-      const campaignsResponse = await fetch('http://localhost:5001/api/campaigns');
+      const campaignsResponse = await fetch(`${API_URL}/api/campaigns`);
       const campaignsData = await campaignsResponse.json();
       
       // Fetch pending leads
-      const pendingLeadsResponse = await fetch('http://localhost:5001/api/leads/pending');
+      const pendingLeadsResponse = await fetch(`${API_URL}/api/leads/pending`);
       const pendingLeadsData = await pendingLeadsResponse.json();
       
       // Fetch completed leads count
-      const completedLeadsResponse = await fetch('http://localhost:5001/api/leads/completed/count');
+      const completedLeadsResponse = await fetch(`${API_URL}/api/leads/completed/count`);
       const completedLeadsData = await completedLeadsResponse.json();
       
       if (campaignsData.success && pendingLeadsData.success && completedLeadsData.success) {
@@ -119,7 +121,7 @@ const Dashboard = () => {
 
   const fetchEmailConfig = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/test-email');
+      const response = await fetch(`${API_URL}/api/test-email`);
       if (response.ok) {
         const data = await response.json();
         setEmailConfig({
@@ -151,7 +153,7 @@ const Dashboard = () => {
     e.preventDefault();
     setSendingTestEmail(true);
     try {
-      const response = await fetch('http://localhost:5001/api/test-email', {
+      const response = await fetch(`${API_URL}/api/test-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

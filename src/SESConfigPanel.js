@@ -25,6 +25,8 @@ const SESConfigPanel = () => {
     fetchStatus();
   }, []);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
   const fetchConfig = async () => {
     try {
       // In a real app, you'd fetch the current config from backend
@@ -43,7 +45,7 @@ const SESConfigPanel = () => {
 
   const fetchStatus = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/test-email');
+      const response = await fetch(`${API_URL}/api/test-email`);
       if (response.ok) {
         const data = await response.json();
         setStatus({
@@ -69,7 +71,7 @@ const SESConfigPanel = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('http://localhost:5001/api/ses-config', {
+      const response = await fetch(`${API_URL}/api/ses-config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +108,7 @@ const SESConfigPanel = () => {
 
   const handleTestConnection = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/test-email');
+      const response = await fetch(`${API_URL}/api/test-email`);
       const data = await response.json();
       
       if (data.isConnected) {

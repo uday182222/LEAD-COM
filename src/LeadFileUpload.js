@@ -110,7 +110,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5001/api/upload', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -253,7 +254,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
     
     try {
       // Send validation request to backend
-      const response = await fetch('http://localhost:5001/api/validate', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/validate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -332,7 +334,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
     try {
       // Save leads to database
       console.log('📡 Sending request to save leads...');
-      const response = await fetch('http://localhost:5001/api/save-leads', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/save-leads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -392,7 +395,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
       if (onUploadComplete) {
         try {
           // Fetch the uploaded leads from the database
-          const leadsResponse = await fetch('http://localhost:5001/api/leads/pending');
+          const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+          const leadsResponse = await fetch(`${API_URL}/api/leads/pending`);
           if (leadsResponse.ok) {
             const leadsData = await leadsResponse.json();
             onUploadComplete(leadsData.leads || []);
@@ -422,7 +426,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
     
     try {
       // Retry saving leads to database with same settings
-      const response = await fetch('http://localhost:5001/api/save-leads', {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${API_URL}/api/save-leads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -464,7 +469,7 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
       
       // Call the upload complete callback
       if (onUploadComplete) {
-        try { const leadsResponse = await fetch("http://localhost:5001/api/leads/pending"); if (leadsResponse.ok) { const leadsData = await leadsResponse.json(); onUploadComplete(leadsData.leads || []); } else { onUploadComplete([]); } } catch (error) { console.error("Error fetching uploaded leads:", error); onUploadComplete([]); }
+        try { const leadsResponse = await fetch(`${API_URL}/api/leads/pending`); if (leadsResponse.ok) { const leadsData = await leadsResponse.json(); onUploadComplete(leadsData.leads || []); } else { onUploadComplete([]); } } catch (error) { console.error("Error fetching uploaded leads:", error); onUploadComplete([]); }
       }
       
     } catch (error) {

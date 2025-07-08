@@ -8,11 +8,13 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+
   // Fetch HTML templates from backend
   useEffect(() => {
     const fetchHtmlTemplates = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/templates');
+        const response = await fetch(`${API_URL}/api/templates`);
         if (response.ok) {
           const data = await response.json();
           setHtmlTemplates(data.templates || []);
@@ -37,7 +39,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
       // Fetch available leads from backend (fallback)
       const fetchAvailableLeads = async () => {
         try {
-          const response = await fetch('http://localhost:5001/api/leads/pending');
+          const response = await fetch(`${API_URL}/api/leads/pending`);
           if (response.ok) {
             const data = await response.json();
             setAvailableLeads(data.leads || []);
@@ -107,7 +109,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
       };
 
       // Call backend API to create campaign
-      const response = await fetch('http://localhost:5001/api/campaigns', {
+      const response = await fetch(`${API_URL}/api/campaigns`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
