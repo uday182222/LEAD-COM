@@ -786,19 +786,13 @@ const createTemplate = async (templateData) => {
   
   try {
     const query = `
-      INSERT INTO templates (name, file_name)
-      VALUES ($1, $2)
-      ON CONFLICT (name) DO UPDATE SET
-        file_name = EXCLUDED.file_name,
-        created_at = CURRENT_TIMESTAMP
-      RETURNING id, name, file_name, created_at
+      INSERT INTO email_templates (name, html_template, fields)
+      VALUES ($1, $2, $3)
+      RETURNING id, name, html_template, fields, created_at, updated_at
     `;
-    
-    const values = [templateData.name, templateData.file_name];
+    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || [])];
     const result = await client.query(query, values);
-    
     return result.rows[0];
-    
   } catch (error) {
     console.error('Error creating template:', error);
     throw error;
@@ -813,14 +807,12 @@ const getTemplates = async () => {
   
   try {
     const query = `
-      SELECT id, name, file_name, created_at
-      FROM templates
+      SELECT id, name, html_template, fields, created_at, updated_at
+      FROM email_templates
       ORDER BY created_at DESC
     `;
-    
     const result = await client.query(query);
     return result.rows;
-    
   } catch (error) {
     console.error('Error fetching templates:', error);
     throw error;
@@ -835,19 +827,15 @@ const getTemplateById = async (templateId) => {
   
   try {
     const query = `
-      SELECT id, name, file_name, created_at
-      FROM templates
+      SELECT id, name, html_template, fields, created_at, updated_at
+      FROM email_templates
       WHERE id = $1
     `;
-    
     const result = await client.query(query, [templateId]);
-    
     if (result.rows.length === 0) {
       return null;
     }
-    
     return result.rows[0];
-    
   } catch (error) {
     console.error('Error fetching template by ID:', error);
     throw error;
