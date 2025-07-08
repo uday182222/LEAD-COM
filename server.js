@@ -1629,6 +1629,12 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Catch-all error handler (must be last middleware)
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(500).json({ success: false, error: 'Internal server error' });
+});
+
 // Initialize database on startup
 const initializeApp = async () => {
   try {
