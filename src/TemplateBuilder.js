@@ -449,6 +449,9 @@ if (currentTemplate && currentTemplate.fields && !currentTemplate.fields.include
   currentTemplate.fields.push('content');
 }
 
+// Combine presetTemplates and user templates for management list
+const allTemplates = [...presetTemplates, ...templates];
+
 return (
   <div style={{ 
     maxWidth: 1400, 
@@ -708,7 +711,7 @@ return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {loadingTemplates ? (
               <div style={{ color: '#8892b0', fontSize: '14px', textAlign: 'center', padding: '16px' }}>Loading templates...</div>
-            ) : templates.length === 0 ? (
+            ) : allTemplates.length === 0 ? (
               <div style={{ 
                 color: '#8892b0',
                 fontSize: '14px',
@@ -719,7 +722,7 @@ return (
                 No saved templates yet
               </div>
             ) : (
-              templates.map((template) => (
+              allTemplates.map((template) => (
                 <div
                   key={template.id}
                   style={{
