@@ -1623,6 +1623,7 @@ app.get('/api/templates/:templateName/preview', async (req, res) => {
 // Email Templates API
 app.get('/api/email-templates', async (req, res) => {
   console.log("GET /api/email-templates called");
+  console.log("DB object keys:", Object.keys(db));
   try {
     const templates = await db.getEmailTemplates();
     res.json({ success: true, templates });
