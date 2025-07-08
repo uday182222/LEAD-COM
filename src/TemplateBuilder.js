@@ -519,9 +519,11 @@ return (
               <h4 style={{ color: '#64ffda', marginBottom: 12 }}>Template Variables</h4>
               {currentTemplate.fields.map(field => (
                 <div key={field} style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', alignItems: field === 'content' ? 'center' : 'flex-start' }}>
-                  <label style={{ color: '#fff', fontWeight: 'bold', marginRight: 8, textAlign: field === 'content' ? 'center' : 'left', width: field === 'content' ? '100%' : undefined }}>{getFieldDisplayName(field)}:</label>
+                  <label htmlFor={field} style={{ color: '#fff', fontWeight: 'bold', marginRight: 8, textAlign: field === 'content' ? 'center' : 'left', width: field === 'content' ? '100%' : undefined }}>{getFieldDisplayName(field)}:</label>
                   {field === 'content' ? (
                     <textarea
+                      id={field}
+                      name={field}
                       value={presetVars[field] || ''}
                       onChange={e => setPresetVars({ ...presetVars, [field]: e.target.value })}
                       rows={5}
@@ -530,6 +532,8 @@ return (
                     />
                   ) : ['email', 'full_name'].includes(field) ? (
                     <select
+                      id={field}
+                      name={field}
                       value={presetVars[field] || ''}
                       onChange={e => setPresetVars({ ...presetVars, [field]: e.target.value })}
                       style={{ padding: '8px', borderRadius: 6, border: '1px solid #64ffda', width: 300 }}
@@ -541,6 +545,8 @@ return (
                     </select>
                   ) : (
                     <input
+                      id={field}
+                      name={field}
                       type="text"
                       value={presetVars[field] || ''}
                       onChange={e => setPresetVars({ ...presetVars, [field]: e.target.value })}
@@ -562,10 +568,11 @@ return (
               fontSize: '14px',
               fontWeight: 'bold',
               marginBottom: '8px'
-            }}>
+            }} htmlFor="htmlTemplate">
               HTML Template:
             </label>
             <textarea
+              id="htmlTemplate"
               name="htmlTemplate"
               value={htmlTemplate}
               onChange={(e) => setHtmlTemplate(e.target.value)}

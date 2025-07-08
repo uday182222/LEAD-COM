@@ -586,6 +586,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
         }}
       >
         <input
+          id="leadFileInput"
+          name="leadFileInput"
           ref={fileInputRef}
           type="file"
           accept=".csv, .xlsx, .xls"
@@ -1204,6 +1206,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
                   }}>
                     {isEditing ? (
                       <input
+                        id={`columnRename-${header}`}
+                        name={`columnRename-${header}`}
                         type="text"
                         value={columnRenames[header] || header}
                         onChange={(e) => handleColumnRename(header, e.target.value)}
@@ -1259,6 +1263,8 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
                   </div>
                   
                   <select
+                    id={`fieldMapping-${header}`}
+                    name={`fieldMapping-${header}`}
                     value={currentMapping}
                     onChange={(e) => handleFieldMapping(header, e.target.value)}
                     style={{

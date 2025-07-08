@@ -261,10 +261,11 @@ const SESConfigPanel = () => {
               marginBottom: '0.5rem',
               color: colors.text,
               fontWeight: 'bold'
-            }}>
+            }} htmlFor="awsRegion">
               AWS Region
             </label>
             <input
+              id="awsRegion"
               type="text"
               name="awsRegion"
               value={config.awsRegion}
@@ -289,10 +290,11 @@ const SESConfigPanel = () => {
               marginBottom: '0.5rem',
               color: colors.text,
               fontWeight: 'bold'
-            }}>
+            }} htmlFor="awsAccessKeyId">
               AWS Access Key ID
             </label>
             <input
+              id="awsAccessKeyId"
               type="text"
               name="awsAccessKeyId"
               value={config.awsAccessKeyId}
@@ -317,10 +319,11 @@ const SESConfigPanel = () => {
               marginBottom: '0.5rem',
               color: colors.text,
               fontWeight: 'bold'
-            }}>
+            }} htmlFor="awsSecretAccessKey">
               AWS Secret Access Key
             </label>
             <input
+              id="awsSecretAccessKey"
               type="password"
               name="awsSecretAccessKey"
               value={config.awsSecretAccessKey}
@@ -345,10 +348,11 @@ const SESConfigPanel = () => {
               marginBottom: '0.5rem',
               color: colors.text,
               fontWeight: 'bold'
-            }}>
+            }} htmlFor="emailFrom">
               From Email Address
             </label>
             <input
+              id="emailFrom"
               type="email"
               name="emailFrom"
               value={config.emailFrom}

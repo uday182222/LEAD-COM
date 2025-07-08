@@ -571,7 +571,12 @@ const FieldSelection = ({ availableFields, onFieldSelection, onPresetLoad }) => 
             }}>
               Save Field Preset
             </h3>
+            <label htmlFor="presetName" style={{ color: '#64ffda', fontWeight: 'bold', marginBottom: '8px', display: 'block' }}>
+              Preset Name
+            </label>
             <input
+              id="presetName"
+              name="presetName"
               type="text"
               placeholder="Enter preset name..."
               value={presetName}

@@ -219,6 +219,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
             {/* Campaign Name Field */}
             <div>
               <label 
+                htmlFor="campaignName"
                 style={{ 
                   display: 'block',
                   color: '#ffffff',
@@ -230,6 +231,8 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                 Campaign Name *
               </label>
               <input
+                id="campaignName"
+                name="campaignName"
                 type="text"
                 value={campaignName}
                 onChange={(e) => {
@@ -274,6 +277,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
             {/* HTML Template Selection */}
             <div>
               <label 
+                htmlFor="selectedHtmlTemplate"
                 style={{ 
                   display: 'block',
                   color: '#ffffff',
@@ -286,6 +290,8 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
               </label>
               
               <select
+                id="selectedHtmlTemplate"
+                name="selectedHtmlTemplate"
                 value={selectedHtmlTemplate}
                 onChange={(e) => {
                   setSelectedHtmlTemplate(e.target.value);
