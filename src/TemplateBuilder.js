@@ -599,6 +599,32 @@ return (
               }}
             />
           </div>
+          <button
+            onClick={saveTemplate}
+            style={{
+              marginTop: '18px',
+              padding: '14px 32px',
+              background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+              color: '#1a1a2e',
+              border: 'none',
+              borderRadius: '10px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 4px 16px rgba(100, 255, 218, 0.15)'
+            }}
+            onMouseEnter={e => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 24px rgba(100, 255, 218, 0.25)';
+            }}
+            onMouseLeave={e => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 16px rgba(100, 255, 218, 0.15)';
+            }}
+          >
+            💾 Save Template
+          </button>
         </div>
 
         {/* Template Management */}
