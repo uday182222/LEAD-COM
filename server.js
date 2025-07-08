@@ -1645,6 +1645,7 @@ app.get('/api/email-templates/:id', async (req, res) => {
 });
 
 app.post('/api/email-templates', async (req, res) => {
+  console.log("Received template data:", req.body);
   try {
     const { name, html_template, fields } = req.body;
     if (!name || !html_template) {
