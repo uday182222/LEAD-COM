@@ -1,39 +1,57 @@
 import React, { useState, useEffect } from 'react';
 
-const CampaignForm = ({ onSubmit, onCancel }) => {
+const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
   const [campaignName, setCampaignName] = useState('');
-  const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [templates, setTemplates] = useState([]);
+  const [selectedHtmlTemplate, setSelectedHtmlTemplate] = useState('');
+  const [htmlTemplates, setHtmlTemplates] = useState([]);
   const [availableLeads, setAvailableLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Fetch saved templates from localStorage (since templates are stored there)
+  // Fetch HTML templates from backend
   useEffect(() => {
-    const savedTemplates = localStorage.getItem('emailTemplates');
-    if (savedTemplates) {
-      setTemplates(JSON.parse(savedTemplates));
-    }
-  }, []);
-
-  // Fetch available leads from backend
-  useEffect(() => {
-    const fetchAvailableLeads = async () => {
+    const fetchHtmlTemplates = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/available-leads');
+        const response = await fetch('http://localhost:5001/api/templates');
         if (response.ok) {
           const data = await response.json();
-          setAvailableLeads(data.leads || []);
+          setHtmlTemplates(data.templates || []);
         } else {
-          console.error('Failed to fetch available leads:', response.status);
+          console.error('Failed to fetch HTML templates:', response.status);
         }
       } catch (error) {
-        console.error('Error fetching available leads:', error);
+        console.error('Error fetching HTML templates:', error);
       }
     };
 
-    fetchAvailableLeads();
+    fetchHtmlTemplates();
   }, []);
+
+  // Use uploaded leads if provided, otherwise fetch from backend
+  useEffect(() => {
+    if (uploadedLeads && uploadedLeads.length > 0) {
+      // Use the leads passed from the upload step
+      console.log('Using uploaded leads:', uploadedLeads);
+      setAvailableLeads(uploadedLeads);
+    } else {
+      // Fetch available leads from backend (fallback)
+      const fetchAvailableLeads = async () => {
+        try {
+          const response = await fetch('http://localhost:5001/api/leads/pending');
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableLeads(data.leads || []);
+          } else {
+            console.error('Failed to fetch pending leads:', response.status);
+          }
+        } catch (error) {
+          console.error('Error fetching pending leads:', error);
+        }
+      };
+
+      fetchAvailableLeads();
+    }
+  }, [uploadedLeads]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -45,14 +63,14 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
       newErrors.campaignName = 'Campaign name must be at least 3 characters';
     }
 
-    // Validate template selection
-    if (!selectedTemplate) {
-      newErrors.selectedTemplate = 'Please select a template';
+    // Validate HTML template selection
+    if (!selectedHtmlTemplate) {
+      newErrors.selectedHtmlTemplate = 'Please select an HTML template';
     }
 
     // Validate available leads
     if (availableLeads.length === 0) {
-      newErrors.leads = 'No leads available for campaign. Please upload leads first.';
+      newErrors.leads = 'No pending leads available for campaign. Please upload leads first.';
     }
 
     setErrors(newErrors);
@@ -69,16 +87,23 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
     setLoading(true);
 
     try {
-      const selectedTemplateData = templates.find(t => t.id === parseInt(selectedTemplate));
-      
-      // Get lead IDs from available leads
-      const leadIds = availableLeads.map(lead => lead.id);
-      
-      const campaignData = {
+      let selectedTemplateData = null;
+      let campaignData = {
         name: campaignName.trim(),
-        templateId: parseInt(selectedTemplate),
-        leadIds: leadIds,
+        leadIds: availableLeads.map(lead => lead.id),
         scheduledAt: null // Optional, can be set later
+      };
+
+      // Using HTML template
+      selectedTemplateData = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
+      campaignData.templateName = selectedHtmlTemplate;
+      campaignData.template = {
+        type: 'email',
+        subject: `Hello from ${campaignName.trim()}`,
+        custom_message: 'We\'d love to connect with you and discuss how we can help.',
+        cta_link: 'https://example.com',
+        cta_text: 'Learn More',
+        unsubscribe_link: 'https://example.com/unsubscribe'
       };
 
       // Call backend API to create campaign
@@ -101,12 +126,13 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
       await onSubmit({
         ...result.campaign,
         template: selectedTemplateData,
+        templateName: selectedHtmlTemplate,
         createdAt: new Date().toISOString()
       });
       
       // Reset form on successful submission
       setCampaignName('');
-      setSelectedTemplate('');
+      setSelectedHtmlTemplate('');
       setErrors({});
     } catch (error) {
       console.error('Error creating campaign:', error);
@@ -243,7 +269,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
               )}
             </div>
 
-            {/* Template Selection Field */}
+            {/* HTML Template Selection */}
             <div>
               <label 
                 style={{ 
@@ -254,21 +280,22 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                   marginBottom: '8px'
                 }}
               >
-                Select Template *
+                Select HTML Template *
               </label>
+              
               <select
-                value={selectedTemplate}
+                value={selectedHtmlTemplate}
                 onChange={(e) => {
-                  setSelectedTemplate(e.target.value);
-                  if (errors.selectedTemplate) {
-                    setErrors(prev => ({ ...prev, selectedTemplate: '' }));
+                  setSelectedHtmlTemplate(e.target.value);
+                  if (errors.selectedHtmlTemplate) {
+                    setErrors(prev => ({ ...prev, selectedHtmlTemplate: '' }));
                   }
                 }}
                 style={{
                   width: '100%',
                   padding: '12px',
                   background: 'rgba(136, 146, 176, 0.1)',
-                  border: errors.selectedTemplate ? '1px solid #dc3545' : '1px solid rgba(136, 146, 176, 0.3)',
+                  border: errors.selectedHtmlTemplate ? '1px solid #dc3545' : '1px solid rgba(136, 146, 176, 0.3)',
                   borderRadius: '8px',
                   color: '#ffffff',
                   fontSize: '14px',
@@ -279,17 +306,18 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                   e.target.style.borderColor = '#64ffda';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = errors.selectedTemplate ? '#dc3545' : 'rgba(136, 146, 176, 0.3)';
+                  e.target.style.borderColor = errors.selectedHtmlTemplate ? '#dc3545' : 'rgba(136, 146, 176, 0.3)';
                 }}
               >
-                <option value="">Choose a template...</option>
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} ({template.type === 'email' ? '📧 Email' : '💬 WhatsApp'} • {template.fields.length} variables)
+                <option value="">Choose an HTML template...</option>
+                {htmlTemplates.map((template) => (
+                  <option key={template.name} value={template.name}>
+                    {template.displayName} (📄 HTML Template)
                   </option>
                 ))}
               </select>
-              {errors.selectedTemplate && (
+
+              {errors.selectedHtmlTemplate && (
                 <p style={{ 
                   marginTop: '8px',
                   fontSize: '12px',
@@ -298,7 +326,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                   alignItems: 'center'
                 }}>
                   <span style={{ marginRight: '4px' }}>⚠️</span>
-                  {errors.selectedTemplate}
+                  {errors.selectedHtmlTemplate}
                 </p>
               )}
             </div>
@@ -320,7 +348,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '14px', color: '#ffffff' }}>
-                  Total Leads Available:
+                  Pending Leads Available:
                 </span>
                 <span style={{ 
                   fontSize: '16px', 
@@ -336,7 +364,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                   color: '#8892b0',
                   marginTop: '8px'
                 }}>
-                  These leads will be included in your campaign
+                  These pending leads will be included in your campaign
                 </div>
               )}
             </div>
@@ -479,9 +507,9 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
             👀 Template Preview
           </h3>
           
-          {selectedTemplate ? (
+          {selectedHtmlTemplate ? (
             (() => {
-              const template = templates.find(t => t.id === parseInt(selectedTemplate));
+              const template = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
               if (!template) return null;
               
               return (
@@ -509,7 +537,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '12px', color: '#8892b0' }}>Type:</span>
                         <span style={{ fontSize: '12px', color: '#64ffda' }}>
-                          {template.type === 'email' ? '📧 Email' : '💬 WhatsApp'}
+                          📧 Email
                         </span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -587,7 +615,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                     </div>
                   )}
 
-                  {(template.body || template.whatsappMessage) && (
+                  {template.body && (
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
@@ -603,12 +631,12 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                         {template.type === 'email' ? '📧' : '💬'} Content Preview:
                       </div>
                       <div style={{
-                        background: template.type === 'whatsapp' 
+                        background: false 
                           ? 'linear-gradient(135deg, #25D366, #128C7E)' 
                           : 'rgba(255, 255, 255, 0.05)',
                         borderRadius: '8px',
                         padding: '12px',
-                        border: template.type === 'whatsapp' 
+                        border: false 
                           ? 'none' 
                           : '1px solid rgba(255, 255, 255, 0.1)',
                         color: '#ffffff',
@@ -618,7 +646,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
                         maxHeight: '200px',
                         overflow: 'auto'
                       }}>
-                        {template.body || template.whatsappMessage}
+                        {template.body}
                       </div>
                     </div>
                   )}
@@ -637,7 +665,7 @@ const CampaignForm = ({ onSubmit, onCancel }) => {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '3rem', marginBottom: '16px' }}>👀</div>
-              <div>Select a template to see preview</div>
+              <div>Select an HTML template to see preview</div>
             </div>
           )}
         </div>

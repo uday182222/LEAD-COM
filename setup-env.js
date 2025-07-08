@@ -1,47 +1,72 @@
 const fs = require('fs');
 const path = require('path');
 
-// Template for environment configuration (replace with your actual values)
-const envConfig = `# Twilio Configuration
-TWILIO_ACCOUNT_SID=your_account_sid_here
-TWILIO_AUTH_TOKEN=your_auth_token_here
-TWILIO_WHATSAPP_NUMBER=your_twilio_whatsapp_number_here
-
-# Database Configuration
+// Environment variables template
+const envTemplate = `# Database Configuration
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=lead_management
-DB_USER=your_db_user_here
-DB_PASSWORD=your_db_password_here
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
 
 # Email Configuration
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password_here
-EMAIL_FROM=your_email@gmail.com
+# Choose your email method: 'smtp' (default) or 'ses-api'
+EMAIL_METHOD=smtp
+EMAIL_FROM=your-verified-email@domain.com
+
+# Option 1: SMTP Configuration (Recommended)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+SMTP_SECURE=false
+
+# Option 2: Amazon SES SMTP Configuration (Alternative)
+# SMTP_HOST=email-smtp.us-east-1.amazonaws.com
+# SMTP_PORT=587
+# SMTP_USER=your_smtp_username
+# SMTP_PASS=your_smtp_password
+# SMTP_SECURE=false
+
+# Option 3: Amazon SES API Configuration (Alternative)
+# AWS_REGION=us-east-1
+# AWS_ACCESS_KEY_ID=your_aws_access_key_id
+# AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+
+
 
 # Server Configuration
 PORT=5001
+NODE_ENV=development
 `;
 
+// Create .env file if it doesn't exist
 const envPath = path.join(__dirname, '.env');
 
-try {
-  fs.writeFileSync(envPath, envConfig);
-  console.log('✅ .env file created successfully!');
-  console.log('📝 Please update the configuration values in the .env file:');
-  console.log('   - TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN');
-  console.log('   - DB_USER and DB_PASSWORD');
-  console.log('   - EMAIL_USER and EMAIL_PASS');
+if (!fs.existsSync(envPath)) {
+  fs.writeFileSync(envPath, envTemplate);
+  console.log('✅ Created .env file with template configuration');
+  console.log('📝 Please update the .env file with your actual credentials:');
   console.log('');
-  console.log('Current .env contents:');
-  console.log('----------------------');
-  console.log(envConfig);
-} catch (error) {
-  console.error('❌ Error creating .env file:', error.message);
+  console.log('🔧 Required for SMTP Email:');
+  console.log('   - SMTP_USER: Your email address');
+  console.log('   - SMTP_PASS: Your email password or app password');
+  console.log('   - EMAIL_FROM: Your email address');
   console.log('');
-  console.log('Please create a .env file manually in the project root with the following content:');
-  console.log('----------------------');
-  console.log(envConfig);
+  console.log('🔧 Required for Database:');
+  console.log('   - DB_USER: PostgreSQL username');
+  console.log('   - DB_PASSWORD: PostgreSQL password');
+  console.log('');
+  
+} else {
+  console.log('⚠️ .env file already exists');
+  console.log('📝 To configure email, update these variables:');
+  console.log('   - SMTP_USER: Your email address');
+  console.log('   - SMTP_PASS: Your email password or app password');
+  console.log('   - EMAIL_FROM: Your email address');
+  console.log('');
+  console.log('📝 For Gmail, you may need to:');
+  console.log('   1. Enable 2-factor authentication');
+  console.log('   2. Generate an app password');
+  console.log('   3. Use the app password as SMTP_PASS');
 } 

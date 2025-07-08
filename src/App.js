@@ -6,14 +6,18 @@ import FieldSelection from './FieldSelection';
 import TemplateBuilder from './TemplateBuilder';
 import CampaignForm from './CampaignForm';
 import Dashboard from './Dashboard';
+import SESConfigPanel from './SESConfigPanel';
+import PendingLeadsManager from './PendingLeadsManager';
 import './App.css';
 
 function AppContent() {
-  const [currentStep, setCurrentStep] = useState('dashboard'); // 'dashboard', 'upload', 'field-selection', 'template-builder', or 'campaign-creation'
+  const [currentStep, setCurrentStep] = useState('dashboard'); // 'dashboard', 'upload', 'field-selection', 'template-builder', 'campaign-creation', 'pending-leads', or 'ses-config'
   const [availableFields, setAvailableFields] = useState([]);
   const [selectedFields, setSelectedFields] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [uploadedLeads, setUploadedLeads] = useState([]); // Track uploaded leads throughout workflow
+  const [pendingLeadsCount, setPendingLeadsCount] = useState(0);
   const { colors, isDarkMode, toggleTheme } = useTheme();
 
   // Fetch available fields from database
@@ -60,7 +64,6 @@ function AppContent() {
                 type: template.type,
                 subject: template.subject,
                 body: template.body,
-                whatsappMessage: template.whatsappMessage,
                 fields: template.fields
               } : null
             };
@@ -78,6 +81,25 @@ function AppContent() {
     };
 
     fetchCampaigns();
+  }, []);
+
+  // Fetch pending leads count
+  useEffect(() => {
+    const fetchPendingLeadsCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/pending-leads-count');
+        if (response.ok) {
+          const data = await response.json();
+          setPendingLeadsCount(data.count || 0);
+        } else {
+          console.error('Failed to fetch pending leads count:', response.status);
+        }
+      } catch (error) {
+        console.error('Error fetching pending leads count:', error);
+      }
+    };
+
+    fetchPendingLeadsCount();
   }, []);
 
   const handleFieldSelection = (fields) => {
@@ -98,7 +120,9 @@ function AppContent() {
     }
   };
 
-  const handleUploadComplete = () => {
+  const handleUploadComplete = (leadsData) => {
+    console.log('Upload completed with leads:', leadsData);
+    setUploadedLeads(leadsData || []);
     toast.success('File uploaded successfully!');
     setCurrentStep('field-selection');
   };
@@ -135,6 +159,30 @@ function AppContent() {
 
   const handleCampaignCancel = () => {
     setCurrentStep('template-builder');
+  };
+
+  const handleProceedToCampaign = () => {
+    setCurrentStep('template-builder');
+  };
+
+  const handleBackToUpload = () => {
+    setCurrentStep('upload');
+  };
+
+  const handleLeadsUpdated = () => {
+    // Refresh pending leads count
+    const fetchPendingLeadsCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/pending-leads-count');
+        if (response.ok) {
+          const data = await response.json();
+          setPendingLeadsCount(data.count || 0);
+        }
+      } catch (error) {
+        console.error('Error fetching pending leads count:', error);
+      }
+    };
+    fetchPendingLeadsCount();
   };
 
   const startCampaign = async (campaignId) => {
@@ -183,55 +231,54 @@ function AppContent() {
         
         setCampaigns(enrichedCampaigns || []);
       }
-    } catch (error) {
-      console.error('Error starting campaign:', error);
-      toast.error(`Failed to start campaign: ${error.message}`);
-    }
-  };
-
-  const stopCampaign = async (campaignId) => {
-    try {
-      const response = await fetch(`http://localhost:5001/api/campaigns/${campaignId}/stop`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+            } catch (error) {
+          console.error('Error starting campaign:', error);
+          toast.error(`Failed to start campaign: ${error.message}`);
         }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to stop campaign');
-      }
-
-      const result = await response.json();
+      };
       
-      // Show success notification
-      toast.success(`Campaign "${result.campaign.name}" stopped successfully!`);
+      const stopCampaign = async (campaignId) => {
+        try {
+          const response = await fetch(`http://localhost:5001/api/campaigns/${campaignId}/stop`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
       
-      // Refresh campaigns list to show updated status
-      const campaignsResponse = await fetch('http://localhost:5001/api/campaigns');
-      if (campaignsResponse.ok) {
-        const data = await campaignsResponse.json();
-        
-        // Get templates from localStorage to enrich campaign data
-        const savedTemplates = localStorage.getItem('emailTemplates');
-        const templates = savedTemplates ? JSON.parse(savedTemplates) : [];
-        
-        // Enrich campaign data with template information
-        const enrichedCampaigns = data.campaigns.map(campaign => {
-          const template = templates.find(t => t.id === parseInt(campaign.templateId));
-          return {
-            ...campaign,
-            template_data: template ? {
-              name: template.name,
-              type: template.type,
-              subject: template.subject,
-              body: template.body,
-              whatsappMessage: template.whatsappMessage,
-              fields: template.fields
-            } : null
-          };
-        });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to stop campaign');
+          }
+      
+          const result = await response.json();
+          
+          // Show success notification
+          toast.success(`Campaign "${result.campaign.name}" stopped successfully!`);
+          
+          // Refresh campaigns list to show updated status
+          const campaignsResponse = await fetch('http://localhost:5001/api/campaigns');
+          if (campaignsResponse.ok) {
+            const data = await campaignsResponse.json();
+            
+            // Get templates from localStorage to enrich campaign data
+            const savedTemplates = localStorage.getItem('emailTemplates');
+            const templates = savedTemplates ? JSON.parse(savedTemplates) : [];
+            
+            // Enrich campaign data with template information
+            const enrichedCampaigns = data.campaigns.map(campaign => {
+              const template = templates.find(t => t.id === parseInt(campaign.templateId));
+              return {
+                ...campaign,
+                template_data: template ? {
+                  name: template.name,
+                  type: template.type,
+                  subject: template.subject,
+                  body: template.body,
+                  fields: template.fields
+                } : null
+              };
+            });
         
         setCampaigns(enrichedCampaigns || []);
       }
@@ -295,6 +342,17 @@ function AppContent() {
           fontWeight: currentStep === 'campaign-creation' ? 'bold' : 'normal'
         }}>
           4. Create Campaign
+        </div>
+        <div className={`step ${currentStep === 'pending-leads' ? 'active' : ''}`} style={{
+          padding: '0.5rem 1rem',
+          borderRadius: '8px',
+          background: currentStep === 'pending-leads' ? colors.primary : colors.surface,
+          color: currentStep === 'pending-leads' ? colors.background : colors.textSecondary,
+          border: `1px solid ${colors.border}`,
+          fontSize: '0.9rem',
+          fontWeight: currentStep === 'pending-leads' ? 'bold' : 'normal'
+        }}>
+          5. Manage Pending Leads
         </div>
       </div>
     );
@@ -387,6 +445,59 @@ function AppContent() {
               >
                 📁 Upload Leads
               </button>
+              {pendingLeadsCount > 0 && (
+                <button
+                  onClick={() => setCurrentStep('pending-leads')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: currentStep === 'pending-leads' ? colors.primary : 'transparent',
+                    color: currentStep === 'pending-leads' ? colors.background : colors.text,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentStep !== 'pending-leads') {
+                      e.target.style.background = colors.surface;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentStep !== 'pending-leads') {
+                      e.target.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  📋 Pending Leads ({pendingLeadsCount})
+                </button>
+              )}
+              <button
+                onClick={() => setCurrentStep('ses-config')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: currentStep === 'ses-config' ? colors.primary : 'transparent',
+                  color: currentStep === 'ses-config' ? colors.background : colors.text,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (currentStep !== 'ses-config') {
+                    e.target.style.background = colors.surface;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (currentStep !== 'ses-config') {
+                    e.target.style.background = 'transparent';
+                  }
+                }}
+              >
+                ⚙️ SES Config
+              </button>
             </nav>
             
             {/* Theme Toggle */}
@@ -427,7 +538,96 @@ function AppContent() {
       
       <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
         {currentStep === 'dashboard' && (
-          <Dashboard />
+          <div>
+            <Dashboard />
+            {pendingLeadsCount > 0 && (
+              <div style={{
+                marginTop: '2rem',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  background: colors.surface,
+                  borderRadius: '16px',
+                  padding: '24px',
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                  maxWidth: '600px',
+                  margin: '0 auto'
+                }}>
+                  <h3 style={{
+                    color: colors.primary,
+                    fontSize: '1.3rem',
+                    fontWeight: 'bold',
+                    marginBottom: '12px'
+                  }}>
+                    📋 Pending Leads Available
+                  </h3>
+                  <p style={{
+                    color: colors.textSecondary,
+                    marginBottom: '20px'
+                  }}>
+                    You have {pendingLeadsCount} leads ready for campaign creation. 
+                    You can manage them or proceed directly to campaign creation.
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap'
+                  }}>
+                    <button
+                      onClick={() => setCurrentStep('pending-leads')}
+                      style={{
+                        padding: '12px 24px',
+                        background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                        color: colors.background,
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = `0 6px 16px ${colors.primary}40`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      📋 Manage Pending Leads
+                    </button>
+                    <button
+                      onClick={() => setCurrentStep('template-builder')}
+                      style={{
+                        padding: '12px 24px',
+                        background: `linear-gradient(135deg, ${colors.success}, #059669)`,
+                        color: '#ffffff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = `0 6px 16px ${colors.success}40`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      🚀 Create Campaign
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
         
         {currentStep === 'upload' && (
@@ -586,8 +786,21 @@ function AppContent() {
             <CampaignForm
               onSubmit={handleCampaignCreate}
               onCancel={handleCampaignCancel}
+              uploadedLeads={uploadedLeads}
             />
           </div>
+        )}
+
+        {currentStep === 'pending-leads' && (
+          <PendingLeadsManager
+            onProceedToCampaign={handleProceedToCampaign}
+            onBackToUpload={handleBackToUpload}
+            onLeadsUpdated={handleLeadsUpdated}
+          />
+        )}
+        
+        {currentStep === 'ses-config' && (
+          <SESConfigPanel />
         )}
       </main>
 
@@ -661,7 +874,7 @@ function AppContent() {
                         color: colors.textSecondary
                       }}>
                         Template: {campaign.template_data?.name || 'N/A'} • 
-                        Type: {campaign.template_data?.type === 'email' ? '📧 Email' : '💬 WhatsApp'} • 
+                        Type: 📧 Email • 
                         Leads: {campaign.leadCount || 0} • 
                         Status: <span style={{ 
                           color: campaign.status === 'DRAFT' ? colors.warning : 

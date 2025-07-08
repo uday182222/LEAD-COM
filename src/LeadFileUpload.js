@@ -388,9 +388,21 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
       setValidationResults(null);
       setShowValidationResults(false);
       
-      // Call the upload complete callback
+      // Call the upload complete callback with the uploaded leads
       if (onUploadComplete) {
-        onUploadComplete();
+        try {
+          // Fetch the uploaded leads from the database
+          const leadsResponse = await fetch('http://localhost:5001/api/leads/pending');
+          if (leadsResponse.ok) {
+            const leadsData = await leadsResponse.json();
+            onUploadComplete(leadsData.leads || []);
+          } else {
+            onUploadComplete([]);
+          }
+        } catch (error) {
+          console.error('Error fetching uploaded leads:', error);
+          onUploadComplete([]);
+        }
       }
       
     } catch (error) {
@@ -452,7 +464,7 @@ const LeadFileUpload = ({ onFileAccepted = null, onUploadComplete = null }) => {
       
       // Call the upload complete callback
       if (onUploadComplete) {
-        onUploadComplete();
+        try { const leadsResponse = await fetch("http://localhost:5001/api/leads/pending"); if (leadsResponse.ok) { const leadsData = await leadsResponse.json(); onUploadComplete(leadsData.leads || []); } else { onUploadComplete([]); } } catch (error) { console.error("Error fetching uploaded leads:", error); onUploadComplete([]); }
       }
       
     } catch (error) {

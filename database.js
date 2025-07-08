@@ -63,11 +63,16 @@ const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS campaigns (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        template_id BIGINT NOT NULL,
+        template_id BIGINT,
+        template_name VARCHAR(255),
         status VARCHAR(20) DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'RUNNING', 'COMPLETED')),
         scheduled_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT check_template CHECK (
+          (template_id IS NOT NULL AND template_name IS NULL) OR 
+          (template_id IS NULL AND template_name IS NOT NULL)
+        )
       );
     `;
     
@@ -85,6 +90,7 @@ const initializeDatabase = async () => {
         replied_at TIMESTAMP,
         error_message TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(campaign_id, lead_id)
       );
     `;
@@ -322,7 +328,7 @@ const createCampaign = async (campaignData) => {
   try {
     await client.query('BEGIN');
     
-    // Insert campaign
+    // Insert campaign - now only uses template_id
     const campaignQuery = `
       INSERT INTO campaigns (name, template_id, scheduled_at)
       VALUES ($1, $2, $3)
@@ -652,6 +658,253 @@ const getAvailableLeads = async (limit = 100, offset = 0) => {
   }
 };
 
+// Delete lead after successful email delivery
+const deleteLeadAfterEmail = async (leadId) => {
+  const client = await pool.connect();
+  
+  try {
+    // First delete from campaign_leads (if any)
+    await client.query('DELETE FROM campaign_leads WHERE lead_id = $1', [leadId]);
+    
+    // Then delete from leads table
+    const result = await client.query('DELETE FROM leads WHERE id = $1 RETURNING id, email', [leadId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Lead not found');
+    }
+    
+    return result.rows[0];
+    
+  } catch (error) {
+    console.error('Error deleting lead after email:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get pending leads (leads that haven't been emailed yet)
+const getPendingLeads = async (limit = 100, offset = 0) => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT 
+        id,
+        lead_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        company,
+        job_title,
+        industry,
+        website,
+        linkedin_url,
+        tags,
+        source,
+        notes,
+        status,
+        created_at
+      FROM leads 
+      WHERE email IS NOT NULL AND email != ''
+      ORDER BY created_at DESC 
+      LIMIT $1 OFFSET $2
+    `;
+    
+    const result = await client.query(query, [limit, offset]);
+    return result.rows;
+    
+  } catch (error) {
+    console.error('Error fetching pending leads:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get count of pending leads
+const getPendingLeadsCount = async () => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT COUNT(*) as count
+      FROM leads 
+      WHERE email IS NOT NULL AND email != ''
+    `;
+    
+    const result = await client.query(query);
+    return parseInt(result.rows[0].count);
+    
+  } catch (error) {
+    console.error('Error fetching pending leads count:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get count of completed leads (leads that have been emailed)
+const getCompletedLeadsCount = async () => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT COUNT(*) as count
+      FROM campaign_leads 
+      WHERE status = 'SENT'
+    `;
+    
+    const result = await client.query(query);
+    return parseInt(result.rows[0].count);
+    
+  } catch (error) {
+    console.error('Error fetching completed leads count:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Create a new template
+const createTemplate = async (templateData) => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      INSERT INTO templates (name, file_name)
+      VALUES ($1, $2)
+      ON CONFLICT (name) DO UPDATE SET
+        file_name = EXCLUDED.file_name,
+        created_at = CURRENT_TIMESTAMP
+      RETURNING id, name, file_name, created_at
+    `;
+    
+    const values = [templateData.name, templateData.file_name];
+    const result = await client.query(query, values);
+    
+    return result.rows[0];
+    
+  } catch (error) {
+    console.error('Error creating template:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get all templates
+const getTemplates = async () => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT id, name, file_name, created_at
+      FROM templates
+      ORDER BY created_at DESC
+    `;
+    
+    const result = await client.query(query);
+    return result.rows;
+    
+  } catch (error) {
+    console.error('Error fetching templates:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get template by ID
+const getTemplateById = async (templateId) => {
+  const client = await pool.connect();
+  
+  try {
+    const query = `
+      SELECT id, name, file_name, created_at
+      FROM templates
+      WHERE id = $1
+    `;
+    
+    const result = await client.query(query, [templateId]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows[0];
+    
+  } catch (error) {
+    console.error('Error fetching template by ID:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Delete a single lead
+const deleteLead = async (leadId) => {
+  const client = await pool.connect();
+  
+  try {
+    const query = 'DELETE FROM leads WHERE id = $1 RETURNING id, email, first_name, last_name';
+    const result = await client.query(query, [leadId]);
+    
+    if (result.rows.length === 0) {
+      throw new Error('Lead not found');
+    }
+    
+    return result.rows[0];
+    
+  } catch (error) {
+    console.error('Error deleting lead:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Delete multiple leads by IDs
+const deleteLeads = async (leadIds) => {
+  const client = await pool.connect();
+  
+  try {
+    if (!leadIds || leadIds.length === 0) {
+      throw new Error('No lead IDs provided');
+    }
+    
+    const placeholders = leadIds.map((_, index) => `$${index + 1}`).join(',');
+    const query = `DELETE FROM leads WHERE id IN (${placeholders}) RETURNING id, email, first_name, last_name`;
+    
+    const result = await client.query(query, leadIds);
+    return result.rows;
+    
+  } catch (error) {
+    console.error('Error deleting leads:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Clear all pending leads
+const clearAllPendingLeads = async () => {
+  const client = await pool.connect();
+  
+  try {
+    const query = 'DELETE FROM leads WHERE email IS NOT NULL AND email != \'\' RETURNING id, email, first_name, last_name';
+    const result = await client.query(query);
+    return result.rows;
+    
+  } catch (error) {
+    console.error('Error clearing all pending leads:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   pool,
   testConnection,
@@ -665,5 +918,15 @@ module.exports = {
   getCampaignById,
   updateCampaignStatus,
   updateCampaignLeadStatus,
-  getAvailableLeads
+  getAvailableLeads,
+  deleteLeadAfterEmail,
+  getPendingLeads,
+  getPendingLeadsCount,
+  getCompletedLeadsCount,
+  createTemplate,
+  getTemplates,
+  getTemplateById,
+  deleteLead,
+  deleteLeads,
+  clearAllPendingLeads
 }; 

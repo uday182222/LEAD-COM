@@ -1,0 +1,36 @@
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=lead_management
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
+
+# Email Configuration
+# Choose your email method: 'smtp' (default) or 'ses-api'
+EMAIL_METHOD=smtp
+EMAIL_FROM=your-verified-email@domain.com
+
+# Option 1: Amazon SES SMTP Configuration (Recommended)
+SMTP_HOST=email-smtp.us-east-1.amazonaws.com
+SMTP_PORT=587
+SMTP_USER=your_smtp_username
+SMTP_PASS=your_smtp_password
+SMTP_SECURE=false
+
+# Option 2: Amazon SES API Configuration (Alternative)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+
+# Option 3: Gmail SMTP Configuration (Alternative)
+# SMTP_HOST=smtp.gmail.com
+# SMTP_PORT=587
+# SMTP_USER=your_email@gmail.com
+# SMTP_PASS=your_app_password
+# SMTP_SECURE=false
+
+
+
+# Server Configuration
+PORT=5001
+NODE_ENV=development 

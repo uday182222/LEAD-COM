@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Template</title>
+    <style>
+        /* Reset styles for email clients */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+        }
+        /* Responsive design */
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+            .mobile-padding {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+            }
+            .mobile-text {
+                font-size: 16px !important;
+                line-height: 24px !important;
+            }
+            .mobile-heading {
+                font-size: 24px !important;
+                line-height: 32px !important;
+            }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+    <!-- Email Container -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <!-- Main Content Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="max-width: 600px; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                    
+                    <!-- Header Section -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: bold; line-height: 36px;" class="mobile-heading">
+                                Hello {{first_name}}!
+                            </h1>
+                            <p style="margin: 10px 0 0 0; color: #ffffff; font-size: 16px; opacity: 0.9;">
+                                We're excited to connect with you
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Main Content Section -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 40px 40px 20px 40px;">
+                            <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 24px;" class="mobile-text">
+                                Hi {{first_name}},
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 24px;" class="mobile-text">
+                                {{custom_message}}
+                            </p>
+                            
+                            <p style="margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 24px;" class="mobile-text">
+                                We noticed that {{company_name}} is doing some amazing work, and we'd love to explore how we can help you achieve even greater success.
+                            </p>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                            <tr>
+                                                <td style="border-radius: 6px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                                    <a href="{{cta_link}}" style="display: inline-block; padding: 16px 32px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: bold; border-radius: 6px;">
+                                                        {{cta_text}}
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 0 0 20px 0; color: #666666; font-size: 14px; line-height: 20px;">
+                                Looking forward to connecting with you!
+                            </p>
+                            
+                            <p style="margin: 0; color: #666666; font-size: 14px; line-height: 20px;">
+                                Best regards,<br>
+                                The Team
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer Section -->
+                    <tr>
+                        <td class="mobile-padding" style="padding: 20px 40px 40px 40px; background-color: #f8f9fa; border-top: 1px solid #e9ecef;">
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <p style="margin: 0 0 10px 0; color: #666666; font-size: 12px; line-height: 18px;">
+                                            © 2024 Your Company. All rights reserved.
+                                        </p>
+                                        <p style="margin: 0; color: #666666; font-size: 12px; line-height: 18px;">
+                                            <a href="{{unsubscribe_link}}" style="color: #667eea; text-decoration: none;">Unsubscribe</a> | 
+                                            <a href="#" style="color: #667eea; text-decoration: none;">Privacy Policy</a> | 
+                                            <a href="#" style="color: #667eea; text-decoration: none;">Contact Us</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html> 

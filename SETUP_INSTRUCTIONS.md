@@ -36,11 +36,13 @@ node setup-env.js
 
 This will create a `.env` file with placeholder values. Edit the `.env` file with your actual credentials:
 
+#### **Option A: Amazon SES (Recommended)**
 ```env
-# Twilio Configuration (Optional - for WhatsApp features)
-TWILIO_ACCOUNT_SID=your_account_sid_here
-TWILIO_AUTH_TOKEN=your_auth_token_here
-TWILIO_WHATSAPP_NUMBER=your_twilio_whatsapp_number_here
+# Amazon SES Configuration (Recommended)
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+EMAIL_FROM=your-verified-email@domain.com
 
 # Database Configuration (Required)
 DB_HOST=localhost
@@ -49,16 +51,38 @@ DB_NAME=lead_management
 DB_USER=your_db_user_here
 DB_PASSWORD=your_db_password_here
 
-# Email Configuration (Optional - for email campaigns)
+# Server Configuration
+PORT=5001
+NODE_ENV=development
+```
+
+**📧 Amazon SES Setup**: See [AMAZON_SES_SETUP.md](./AMAZON_SES_SETUP.md) for detailed setup instructions.
+
+#### **Option B: Gmail SMTP (Alternative)**
+```env
+# Gmail SMTP Configuration (Alternative)
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password_here
 EMAIL_FROM=your_email@gmail.com
 
+# Database Configuration (Required)
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=lead_management
+DB_USER=your_db_user_here
+DB_PASSWORD=your_db_password_here
+
 # Server Configuration
 PORT=5001
+NODE_ENV=development
 ```
+
+**📧 Gmail Setup**: 
+- Enable 2-factor authentication on your Gmail account
+- Generate an App Password (not your regular password)
+- Use the App Password in EMAIL_PASS
 
 ### 4. **Start PostgreSQL Service**
 
@@ -133,7 +157,7 @@ The React app will open in your browser at `http://localhost:3000`
 - Real-time progress tracking
 
 ### **Campaign Management**
-- Create email and WhatsApp campaigns
+- Create email campaigns
 - Template builder with dynamic fields
 - Campaign scheduling
 - Performance tracking

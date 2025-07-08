@@ -9,15 +9,19 @@ const XLSX = require('xlsx');
 const path = require('path');
 const db = require('./database');
 const crypto = require('crypto');
-const twilio = require('./twilio-config');
-const email = require('./email-config');
+
+const mailer = require('./mailer');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+const EMAIL_DELAY_MS = process.env.EMAIL_DELAY_MS || 100; // Configurable email delay
 
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Serve static files from public directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure multer for file upload
 const storage = multer.memoryStorage();
@@ -68,11 +72,22 @@ function parseCSV(buffer) {
       throw new Error('CSV file is empty');
     }
 
+    // Debug: Log first few lines to see the format
+    console.log('CSV content preview:');
+    console.log(csvString.split('\n').slice(0, 3).join('\n'));
+    
+    // Debug: Check for potential issues
+    const lines = csvString.split('\n');
+    console.log('Total lines:', lines.length);
+    console.log('First line:', lines[0]);
+    console.log('Second line:', lines[1]);
+
     const result = Papa.parse(csvString, {
       header: true,
       skipEmptyLines: true,
       trimHeaders: true,
       trimValues: true,
+      delimiter: ',', // Explicitly specify comma delimiter
       error: (error) => {
         throw new Error(`CSV parsing error at row ${error.row}: ${error.message}`);
       }
@@ -83,6 +98,7 @@ function parseCSV(buffer) {
       const errorMessages = result.errors.map(e => 
         `Row ${e.row}: ${e.message}`
       ).join('; ');
+      console.log('CSV parsing errors:', result.errors);
       throw new Error(`CSV parsing errors: ${errorMessages}`);
     }
 
@@ -90,6 +106,10 @@ function parseCSV(buffer) {
     if (!result.data || result.data.length === 0) {
       throw new Error('No data found in CSV file after parsing');
     }
+
+    // Debug: Log parsed headers
+    console.log('Parsed headers:', Object.keys(result.data[0] || {}));
+    console.log('First row data:', result.data[0]);
 
     // Check for inconsistent column counts
     const expectedColumns = Object.keys(result.data[0]).length;
@@ -170,19 +190,22 @@ function parseExcel(buffer) {
       throw new Error('Excel file has no column headers');
     }
 
-    // Check for empty or invalid headers
-    const invalidHeaders = headers.filter(header => 
-      !header || header.toString().trim() === ''
-    );
+    // Filter out empty headers and trim whitespace
+    const validHeaders = headers
+      .map(header => header ? header.toString().trim() : '')
+      .filter(header => header !== '');
     
-    if (invalidHeaders.length > 0) {
-      throw new Error(`Found ${invalidHeaders.length} empty or invalid column headers`);
+    if (validHeaders.length === 0) {
+      throw new Error('Excel file has no valid column headers after filtering');
     }
 
-    // Convert remaining rows to objects
+    console.log('Original headers:', headers);
+    console.log('Valid headers after filtering:', validHeaders);
+
+    // Convert remaining rows to objects using only valid headers
     const data = jsonData.slice(1).map((row, index) => {
       const obj = {};
-      headers.forEach((header, colIndex) => {
+      validHeaders.forEach((header, colIndex) => {
         obj[header] = row[colIndex] || '';
       });
       return obj;
@@ -198,7 +221,7 @@ function parseExcel(buffer) {
     }
 
     // Check for inconsistent column counts
-    const expectedColumns = headers.length;
+    const expectedColumns = validHeaders.length;
     const inconsistentRows = data.filter(row => 
       Object.keys(row).length !== expectedColumns
     );
@@ -472,13 +495,15 @@ app.post('/api/save-leads', async (req, res) => {
 app.get('/api/leads', async (req, res) => {
   try {
     const { limit = 100, offset = 0 } = req.query;
-    const leads = await db.getAllLeads(parseInt(limit), parseInt(offset));
+    // Allow up to 2000 leads per request for better UX
+    const maxLimit = Math.min(parseInt(limit) || 100, 2000);
+    const leads = await db.getAllLeads(maxLimit, parseInt(offset));
     const totalCount = await db.getLeadCount();
     
     res.json({
       totalLeads: totalCount,
       leads: leads,
-      limit: parseInt(limit),
+      limit: maxLimit,
       offset: parseInt(offset)
     });
   } catch (error) {
@@ -526,7 +551,7 @@ app.get('/api/available-fields', async (req, res) => {
 // Create a new campaign
 app.post('/api/campaigns', async (req, res) => {
   try {
-    const { name, templateId, leadIds, scheduledAt } = req.body;
+    const { name, templateId, templateName, leadIds, scheduledAt, template } = req.body;
     
     // Validate required fields
     if (!name || name.trim() === '') {
@@ -536,10 +561,10 @@ app.post('/api/campaigns', async (req, res) => {
       });
     }
     
-    if (!templateId) {
+    if (!templateId && !templateName) {
       return res.status(400).json({
         success: false,
-        error: 'Template ID is required'
+        error: 'Either Template ID or Template Name is required'
       });
     }
     
@@ -547,14 +572,6 @@ app.post('/api/campaigns', async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'At least one lead ID is required'
-      });
-    }
-    
-    // Validate templateId is a number
-    if (isNaN(parseInt(templateId))) {
-      return res.status(400).json({
-        success: false,
-        error: 'Template ID must be a valid number'
       });
     }
     
@@ -580,13 +597,42 @@ app.post('/api/campaigns', async (req, res) => {
       validatedScheduledAt = scheduledDate;
     }
     
-    // Create campaign
+    // Create campaign data
     const campaignData = {
       name: name.trim(),
-      templateId: parseInt(templateId),
       leadIds: leadIds.map(id => parseInt(id)),
       scheduledAt: validatedScheduledAt
     };
+    
+    // Handle template creation/selection
+    if (templateName) {
+      // HTML template campaign - create or get template
+      const templateData = template || {
+        type: 'email',
+        subject: `Hello from ${name.trim()}`,
+        custom_message: 'We\'d love to connect with you and discuss how we can help.',
+        cta_link: 'https://example.com',
+        cta_text: 'Learn More',
+        unsubscribe_link: 'https://example.com/unsubscribe'
+      };
+      
+      // Create template in database
+      const createdTemplate = await db.createTemplate({
+        name: templateName,
+        file_name: templateName
+      });
+      
+      campaignData.templateId = createdTemplate.id;
+    } else {
+      // Regular template campaign - validate templateId is UUID
+      if (!templateId || typeof templateId !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Template ID must be a valid UUID'
+        });
+      }
+      campaignData.templateId = templateId;
+    }
     
     const campaign = await db.createCampaign(campaignData);
     
@@ -826,7 +872,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       });
     }
     
-    // Get campaign details
+    // Get campaign details with template information
     const campaign = await db.getCampaignById(campaignId);
     
     if (!campaign) {
@@ -844,20 +890,61 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       });
     }
     
+    // Get template information
+    let templateInfo = null;
+    if (campaign.template_id) {
+      templateInfo = await db.getTemplateById(campaign.template_id);
+      if (!templateInfo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Template not found'
+        });
+      }
+    }
+    
     // Update campaign status to RUNNING
     const updatedCampaign = await db.updateCampaignStatus(campaignId, 'RUNNING');
     
     console.log(`🚀 Campaign "${campaign.name}" (ID: ${campaignId}) started successfully`);
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
+    if (templateInfo) {
+      console.log(`📄 Using template: ${templateInfo.name} (${templateInfo.file_name})`);
+    }
     
     // Send messages to all leads in the campaign
     if (campaign.leads && campaign.leads.length > 0) {
       let sentCount = 0;
       let failedCount = 0;
       
-      if (template && template.type === 'email') {
+      // Determine template to use
+      let emailTemplate = null;
+      let templatePath = null;
+      
+      if (templateInfo) {
+        // Use HTML template from database
+        templatePath = `templates/${templateInfo.file_name}`;
+        emailTemplate = {
+          type: 'email',
+          subject: template?.subject || `Hello from ${campaign.name}`,
+          templatePath: templatePath
+        };
+      } else if (template && template.type === 'email') {
+        // Use provided template (legacy support)
+        emailTemplate = template;
+      } else {
+        // Create default email template
+        emailTemplate = {
+          type: 'email',
+          subject: `Hello from ${campaign.name}`,
+          body: `Hi {first_name},\n\nThank you for your interest in our services. We'd love to connect with you and discuss how we can help.\n\nBest regards,\nYour Team`,
+          fields: ['first_name']
+        };
+      }
+      
+      if (emailTemplate.type === 'email') {
         // Send emails to all leads
         console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
+        
         for (const lead of campaign.leads) {
           try {
             if (!lead.email || lead.email.trim() === '') {
@@ -865,29 +952,63 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
               failedCount++;
               continue;
             }
-            // Personalize subject and body
-            let subject = template.subject;
-            let body = template.body;
-            if (template.fields && Array.isArray(template.fields)) {
-              template.fields.forEach(field => {
-                const placeholder = `{${field}}`;
-                const value = lead[field] || '';
-                subject = subject.replace(new RegExp(placeholder, 'g'), value);
-                body = body.replace(new RegExp(placeholder, 'g'), value);
-              });
+            
+            let result;
+            
+            if (templatePath) {
+              // Use sendHTMLEmail with template file
+              const { sendHTMLEmail } = require('./email-service');
+              
+              // Prepare template data from lead fields
+              const templateData = {
+                first_name: lead.first_name || '',
+                last_name: lead.last_name || '',
+                email: lead.email || '',
+                company: lead.company || '',
+                company_name: lead.company || '',
+                custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
+                cta_link: template?.cta_link || 'https://example.com',
+                cta_text: template?.cta_text || 'Learn More',
+                unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
+              };
+              
+              result = await sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
+            } else {
+              // Use legacy text email approach
+              let subject = emailTemplate.subject;
+              let body = emailTemplate.body;
+              
+              if (emailTemplate.fields && Array.isArray(emailTemplate.fields)) {
+                emailTemplate.fields.forEach(field => {
+                  const placeholder = `{${field}}`;
+                  const value = lead[field] || '';
+                  subject = subject.replace(new RegExp(placeholder, 'g'), value);
+                  body = body.replace(new RegExp(placeholder, 'g'), value);
+                });
+              }
+              
+              result = await mailer.sendEmail(lead.email, subject, body);
             }
-            // Send email
-            const result = await require('./email-config').sendEmail(lead.email, subject, body);
+            
             if (result.success) {
               console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
               sentCount++;
               await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
+              
+              // Delete the lead from database after successful email delivery
+              try {
+                await db.deleteLeadAfterEmail(lead.id);
+                console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
+              } catch (deleteError) {
+                console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
+              }
             } else {
               console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
               failedCount++;
               await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
             }
-            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
           } catch (error) {
             console.error(`❌ Error processing lead ${lead.id}:`, error.message);
             failedCount++;
@@ -896,47 +1017,12 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         }
         console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
       } else {
-        // WhatsApp fallback (existing logic)
-        const twilioValidation = twilio.validateTwilioConfig();
-        if (!twilioValidation.isValid) {
-          return res.status(500).json({
-            success: false,
-            error: 'Twilio not configured properly',
-            details: twilioValidation.issues
-          });
-        }
-        console.log(`📱 Starting to send WhatsApp messages to ${campaign.leads.length} leads...`);
-        for (const lead of campaign.leads) {
-          try {
-            if (!lead.phone || lead.phone.trim() === '') {
-              console.log(`⚠️ Skipping lead ${lead.id} - no phone number`);
-              failedCount++;
-              continue;
-            }
-            let messageBody = '';
-            if (lead.first_name && lead.first_name.trim() !== '') {
-              messageBody = `Hi ${lead.first_name}! 👋\n\nThank you for your interest. We'd love to connect with you.\n\nBest regards,\nYour Team`;
-            } else {
-              messageBody = `Hi there! 👋\n\nThank you for your interest. We'd love to connect with you.\n\nBest regards,\nYour Team`;
-            }
-            const result = await twilio.sendWhatsAppMessage(lead.phone, messageBody);
-            if (result.success) {
-              console.log(`✅ Message sent to ${lead.phone} (${lead.first_name || 'Unknown'})`);
-              sentCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-            } else {
-              console.log(`❌ Failed to send message to ${lead.phone}: ${result.error}`);
-              failedCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
-            }
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } catch (error) {
-            console.error(`❌ Error processing lead ${lead.id}:`, error.message);
-            failedCount++;
-            await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', error.message);
-          }
-        }
-        console.log(`📊 Campaign messaging completed: ${sentCount} sent, ${failedCount} failed`);
+        // Only email campaigns are supported
+        console.log(`⚠️ Template type not supported: ${template?.type}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Only email campaigns are supported'
+        });
       }
     } else {
       console.log(`⚠️ No leads found for campaign ${campaignId}`);
@@ -1026,6 +1112,73 @@ app.post('/api/campaigns/:id/stop', async (req, res) => {
   }
 });
 
+// Get available HTML templates
+app.get('/api/templates', async (req, res) => {
+  try {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    const templatesDir = path.join(process.cwd(), 'templates');
+    
+    try {
+      const files = await fs.readdir(templatesDir);
+      const htmlTemplates = files.filter(file => file.endsWith('.html'));
+      
+      // Get templates from database
+      const dbTemplates = await db.getTemplates();
+      
+      // Create a map of existing templates
+      const existingTemplates = new Map(dbTemplates.map(t => [t.file_name, t]));
+      
+      // Process HTML files and create/update templates in database
+      const templates = [];
+      for (const file of htmlTemplates) {
+        const displayName = file.replace('.html', '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        // Check if template exists in database
+        let template = existingTemplates.get(file);
+        
+        if (!template) {
+          // Create template in database
+          template = await db.createTemplate({
+            name: displayName,
+            file_name: file
+          });
+        }
+        
+        templates.push({
+          id: template.id,
+          name: template.name,
+          file_name: template.file_name,
+          path: `templates/${file}`,
+          displayName: displayName
+        });
+      }
+      
+      res.json({
+        success: true,
+        templates: templates
+      });
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        res.json({
+          success: true,
+          templates: []
+        });
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Get templates error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to get templates'
+    });
+  }
+});
+
 // Get available leads for campaign selection
 app.get('/api/available-leads', async (req, res) => {
   try {
@@ -1077,88 +1230,18 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Test Twilio configuration
-app.get('/api/test-twilio', async (req, res) => {
-  try {
-    const validation = twilio.validateTwilioConfig();
-    
-    if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Twilio configuration issues',
-        details: validation.issues
-      });
-    }
-    
-    const isConnected = await twilio.testTwilioConnection();
-    
-    res.json({
-      success: true,
-      message: 'Twilio configuration test completed',
-      isConnected: isConnected,
-      whatsappNumber: twilio.TWILIO_WHATSAPP_NUMBER
-    });
-    
-  } catch (error) {
-    console.error('Test Twilio error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to test Twilio configuration'
-    });
-  }
-});
-
-// Test WhatsApp message sending (for development only)
-app.post('/api/test-whatsapp', async (req, res) => {
-  try {
-    const { to, message } = req.body;
-    
-    if (!to || !message) {
-      return res.status(400).json({
-        success: false,
-        error: 'Recipient number and message are required'
-      });
-    }
-    
-    const result = await twilio.sendWhatsAppMessage(to, message);
-    
-    res.json({
-      success: result.success,
-      message: result.success ? 'Test message sent successfully' : 'Failed to send test message',
-      details: result
-    });
-    
-  } catch (error) {
-    console.error('Test WhatsApp error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to send test WhatsApp message'
-    });
-  }
-});
-
 // Test Email configuration
 app.get('/api/test-email', async (req, res) => {
   try {
-    const validation = email.validateEmailConfig();
-    
-    if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email configuration issues',
-        details: validation.issues
-      });
-    }
-    
-    const isConnected = await email.testEmailConnection();
+    const configStatus = mailer.getEmailConfigStatus();
+    const isConnected = await mailer.testEmailConnection();
     
     res.json({
       success: true,
       message: 'Email configuration test completed',
       isConnected: isConnected,
-      fromEmail: email.EMAIL_FROM
+      configStatus: configStatus,
+      fromEmail: mailer.EMAIL_FROM
     });
     
   } catch (error) {
@@ -1171,34 +1254,365 @@ app.get('/api/test-email', async (req, res) => {
   }
 });
 
-// Test Email message sending (for development only)
+// Test email endpoint
 app.post('/api/test-email', async (req, res) => {
   try {
-    const { to, subject, body, isHtml = false } = req.body;
+    const { to, subject, templateType, templateData, htmlTemplate } = req.body;
+
+    // Validate required fields
+    if (!to || !subject) {
+      return res.status(400).json({ error: 'Recipient email and subject are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    if (templateType !== 'html' || !htmlTemplate) {
+      return res.status(400).json({ error: 'Only HTML template emails are supported.' });
+    }
+
+    // Process HTML template
+    let emailContent = htmlTemplate;
+    Object.keys(templateData || {}).forEach(key => {
+      const placeholder = new RegExp(`{${key}}`, 'g');
+      const value = templateData[key] || '';
+      emailContent = emailContent.replace(placeholder, value);
+    });
+
+    // Send test email using the email service
+    const emailService = require('./email-service');
+    const fs = require('fs').promises;
+    const path = require('path');
+    const tempTemplatePath = path.join(__dirname, 'temp-test-template.html');
+
+    try {
+      await fs.writeFile(tempTemplatePath, emailContent);
+      const result = await emailService.sendHTMLEmail(to, subject, tempTemplatePath, templateData);
+      await fs.unlink(tempTemplatePath); // Clean up temp file
+
+      if (result.success) {
+        res.json({ success: true, message: 'Test email sent successfully!' });
+      } else {
+        res.status(500).json({ error: result.error || 'Failed to send test email' });
+      }
+    } catch (error) {
+      // Clean up temp file if it exists
+      try {
+        await fs.unlink(tempTemplatePath);
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(500).json({ error: 'Failed to send test email: ' + error.message });
+  }
+});
+
+// Get pending leads count
+app.get('/api/pending-leads-count', async (req, res) => {
+  try {
+    const count = await db.getPendingLeadsCount();
+    res.json({ count });
+  } catch (error) {
+    console.error('Error getting pending leads count:', error);
+    res.status(500).json({ error: 'Failed to get pending leads count' });
+  }
+});
+
+// Delete a single lead
+app.delete('/api/leads/:id', async (req, res) => {
+  try {
+    const leadId = parseInt(req.params.id);
+    const deletedLead = await db.deleteLead(leadId);
+    res.json({ 
+      success: true, 
+      message: 'Lead deleted successfully',
+      deletedLead 
+    });
+  } catch (error) {
+    console.error('Error deleting lead:', error);
+    res.status(500).json({ error: 'Failed to delete lead: ' + error.message });
+  }
+});
+
+// Delete multiple leads
+app.post('/api/leads/delete-multiple', async (req, res) => {
+  try {
+    const { leadIds } = req.body;
     
-    if (!to || !subject || !body) {
+    if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ error: 'Lead IDs array is required' });
+    }
+    
+    const deletedLeads = await db.deleteLeads(leadIds);
+    res.json({ 
+      success: true, 
+      message: `${deletedLeads.length} leads deleted successfully`,
+      deletedLeads 
+    });
+  } catch (error) {
+    console.error('Error deleting leads:', error);
+    res.status(500).json({ error: 'Failed to delete leads: ' + error.message });
+  }
+});
+
+// Clear all pending leads
+app.delete('/api/leads/clear-all', async (req, res) => {
+  try {
+    const deletedLeads = await db.clearAllPendingLeads();
+    res.json({ 
+      success: true, 
+      message: `All pending leads cleared successfully (${deletedLeads.length} leads)`,
+      deletedLeads 
+    });
+  } catch (error) {
+    console.error('Error clearing all pending leads:', error);
+    res.status(500).json({ error: 'Failed to clear all pending leads: ' + error.message });
+  }
+});
+
+// SES Configuration endpoint
+app.post('/api/ses-config', async (req, res) => {
+  try {
+    const { awsRegion, awsAccessKeyId, awsSecretAccessKey, emailFrom } = req.body;
+    
+    // Validate required fields
+    if (!awsRegion || !awsAccessKeyId || !awsSecretAccessKey || !emailFrom) {
       return res.status(400).json({
         success: false,
-        error: 'Recipient email, subject, and body are required'
+        error: 'All SES configuration fields are required'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailFrom)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email format for FROM address'
+      });
+    }
+
+    console.log('📧 Updating SES configuration...');
+    
+    // In a production app, you would update the .env file or configuration
+    // For now, we'll just validate the configuration
+    const testConfig = {
+      AWS_REGION: awsRegion,
+      AWS_ACCESS_KEY_ID: awsAccessKeyId,
+      AWS_SECRET_ACCESS_KEY: awsSecretAccessKey,
+      EMAIL_FROM: emailFrom,
+      EMAIL_METHOD: 'ses-api'
+    };
+
+    // Test the configuration by trying to initialize SES
+    const fs = require('fs');
+    const path = require('path');
+    
+    // Create a temporary .env file for testing
+    const envContent = `AWS_REGION=${awsRegion}
+AWS_ACCESS_KEY_ID=${awsAccessKeyId}
+AWS_SECRET_ACCESS_KEY=${awsSecretAccessKey}
+EMAIL_FROM=${emailFrom}
+EMAIL_METHOD=ses-api`;
+
+    const tempEnvPath = path.join(__dirname, '.env.temp');
+    fs.writeFileSync(tempEnvPath, envContent);
+
+    // Test the configuration
+    const { SESClient } = require('@aws-sdk/client-ses');
+    const testClient = new SESClient({
+      region: awsRegion,
+      credentials: {
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
+      },
+    });
+
+    // Try to get SES account attributes to test connection
+    const { GetAccountAttributesCommand } = require('@aws-sdk/client-ses');
+    const command = new GetAccountAttributesCommand();
+    
+    try {
+      await testClient.send(command);
+      
+      // If successful, update the actual .env file
+      const actualEnvPath = path.join(__dirname, '.env');
+      fs.writeFileSync(actualEnvPath, envContent);
+      
+      // Clean up temp file
+      fs.unlinkSync(tempEnvPath);
+      
+      console.log('✅ SES configuration updated successfully');
+      
+      res.json({
+        success: true,
+        message: 'SES configuration updated successfully',
+        config: {
+          region: awsRegion,
+          fromEmail: emailFrom,
+          method: 'ses-api'
+        }
+      });
+      
+    } catch (sesError) {
+      // Clean up temp file
+      if (fs.existsSync(tempEnvPath)) {
+        fs.unlinkSync(tempEnvPath);
+      }
+      
+      console.error('❌ SES configuration test failed:', sesError.message);
+      res.status(400).json({
+        success: false,
+        error: `SES configuration test failed: ${sesError.message}`,
+        details: 'Please check your AWS credentials and ensure your email is verified in SES'
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error updating SES configuration:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    });
+  }
+});
+
+// Get pending leads (leads that haven't been emailed yet)
+app.get('/api/leads/pending', async (req, res) => {
+  try {
+    const { limit = 100, offset = 0 } = req.query;
+    
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+    
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 500) {
+      return res.status(400).json({
+        success: false,
+        error: 'Limit must be a number between 1 and 500'
       });
     }
     
-    const result = isHtml ? 
-      await email.sendHtmlEmail(to, subject, body) :
-      await email.sendEmail(to, subject, body);
+    if (isNaN(offsetNum) || offsetNum < 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Offset must be a non-negative number'
+      });
+    }
+    
+    const leads = await db.getPendingLeads(limitNum, offsetNum);
+    const totalCount = await db.getPendingLeadsCount();
     
     res.json({
-      success: result.success,
-      message: result.success ? 'Test email sent successfully' : 'Failed to send test email',
-      details: result
+      success: true,
+      leads: leads,
+      totalLeads: totalCount,
+      limit: limitNum,
+      offset: offsetNum
     });
     
   } catch (error) {
-    console.error('Test Email error:', error);
+    console.error('Error fetching pending leads:', error);
     res.status(500).json({
       success: false,
       error: error.message,
-      message: 'Failed to send test email'
+      message: 'Failed to fetch pending leads'
+    });
+  }
+});
+
+// Get completed leads count (leads that have been emailed)
+app.get('/api/leads/completed/count', async (req, res) => {
+  try {
+    const count = await db.getCompletedLeadsCount();
+    
+    res.json({
+      success: true,
+      completedLeads: count
+    });
+    
+  } catch (error) {
+    console.error('Error fetching completed leads count:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to fetch completed leads count'
+    });
+  }
+});
+
+// Preview HTML email template
+app.get('/api/templates/:templateName/preview', async (req, res) => {
+  try {
+    const { templateName } = req.params;
+    const { sampleData } = req.query;
+    
+    // Parse sample data if provided
+    let templateData = {
+      first_name: 'John',
+      last_name: 'Doe',
+      email: 'john.doe@example.com',
+      company: 'Tech Corp',
+      company_name: 'Tech Corp',
+      custom_message: 'We\'d love to connect with you and discuss how we can help.',
+      cta_link: 'https://example.com',
+      cta_text: 'Learn More',
+      unsubscribe_link: 'https://example.com/unsubscribe'
+    };
+    
+    if (sampleData) {
+      try {
+        const parsedData = JSON.parse(decodeURIComponent(sampleData));
+        templateData = { ...templateData, ...parsedData };
+      } catch (error) {
+        console.log('Using default sample data for preview');
+      }
+    }
+    
+    // Load the HTML template
+    const templatePath = `templates/${templateName}`;
+    const { sendHTMLEmail } = require('./email-service');
+    
+    try {
+      // Load HTML template content
+      const fs = require('fs').promises;
+      const path = require('path');
+      const resolvedPath = path.resolve(process.cwd(), templatePath);
+      
+      const htmlContent = await fs.readFile(resolvedPath, 'utf-8');
+      
+      // Replace template variables
+      let processedHTML = htmlContent;
+      Object.keys(templateData).forEach(key => {
+        const placeholder = new RegExp(`{{${key}}}`, 'g');
+        const value = templateData[key] || '';
+        processedHTML = processedHTML.replace(placeholder, value);
+      });
+      
+      res.json({
+        success: true,
+        templateName,
+        html: processedHTML,
+        sampleData: templateData
+      });
+      
+    } catch (error) {
+      res.status(404).json({
+        success: false,
+        error: `Template not found: ${templateName}`
+      });
+    }
+    
+  } catch (error) {
+    console.error('Template preview error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 });
