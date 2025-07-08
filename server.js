@@ -1620,6 +1620,69 @@ app.get('/api/templates/:templateName/preview', async (req, res) => {
   }
 });
 
+// Email Templates API
+app.get('/api/email-templates', async (req, res) => {
+  console.log("GET /api/email-templates called");
+  try {
+    const templates = await db.getEmailTemplates();
+    res.json({ success: true, templates });
+  } catch (error) {
+    console.error('Error fetching email templates:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/email-templates/:id', async (req, res) => {
+  try {
+    const template = await db.getEmailTemplateById(req.params.id);
+    if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
+    res.json({ success: true, template });
+  } catch (error) {
+    console.error('Error fetching email template by ID:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/email-templates', async (req, res) => {
+  try {
+    const { name, html_template, fields } = req.body;
+    if (!name || !html_template) {
+      return res.status(400).json({ success: false, error: 'Name and html_template are required' });
+    }
+    const template = await db.createEmailTemplate({ name, html_template, fields });
+    res.status(201).json({ success: true, template });
+  } catch (error) {
+    console.error('Error creating email template:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/email-templates/:id', async (req, res) => {
+  try {
+    const { name, html_template, fields } = req.body;
+    if (!name || !html_template) {
+      return res.status(400).json({ success: false, error: 'Name and html_template are required' });
+    }
+    const template = await db.updateEmailTemplate(req.params.id, { name, html_template, fields });
+    if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
+    res.json({ success: true, template });
+  } catch (error) {
+    console.error('Error updating email template:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/email-templates/:id', async (req, res) => {
+  try {
+    const deleted = await db.deleteEmailTemplate(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: 'Template not found' });
+    res.json({ success: true, deleted });
+  } catch (error) {
+    console.error('Error deleting email template:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
