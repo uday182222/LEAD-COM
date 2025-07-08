@@ -10,23 +10,14 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-  // Fetch HTML templates from backend
+  // Fetch HTML templates from localStorage instead of backend
   useEffect(() => {
-    const fetchHtmlTemplates = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/templates`);
-        if (response.ok) {
-          const data = await response.json();
-          setHtmlTemplates(data.templates || []);
-        } else {
-          console.error('Failed to fetch HTML templates:', response.status);
-        }
-      } catch (error) {
-        console.error('Error fetching HTML templates:', error);
-      }
-    };
-
-    fetchHtmlTemplates();
+    const savedTemplates = localStorage.getItem('emailTemplates');
+    if (savedTemplates) {
+      setHtmlTemplates(JSON.parse(savedTemplates));
+    } else {
+      setHtmlTemplates([]);
+    }
   }, []);
 
   // Use uploaded leads if provided, otherwise fetch from backend
