@@ -299,6 +299,9 @@ const sendTestEmail = async () => {
   }
 };
 
+// Helper to check if a template is a DB template (numeric ID)
+const isDbTemplate = (template) => template && typeof template.id === 'number';
+
 // Save or update template via API
 const saveTemplate = async () => {
   if (!templateName.trim()) return;
@@ -310,7 +313,7 @@ const saveTemplate = async () => {
       fields: selectedFields,
     };
     let response, data, newTemplate;
-    if (currentTemplate && currentTemplate.id) {
+    if (currentTemplate && isDbTemplate(currentTemplate)) {
       // Update existing template
       response = await fetch(`${API_URL}/api/email-templates/${currentTemplate.id}`, {
         method: 'PUT',
@@ -322,7 +325,7 @@ const saveTemplate = async () => {
         newTemplate = data.template;
         setTemplates(templates.map(t => t.id === newTemplate.id ? newTemplate : t));
       }
-    } else {
+    } else if (!currentTemplate) {
       // Create new template
       response = await fetch(`${API_URL}/api/email-templates`, {
         method: 'POST',
@@ -334,6 +337,11 @@ const saveTemplate = async () => {
         newTemplate = data.template;
         setTemplates([newTemplate, ...templates]);
       }
+    } else {
+      // Preset template, do not allow editing
+      alert('Preset templates cannot be edited or saved.');
+      setSavingTemplate(false);
+      return;
     }
     setTemplateName('');
     setShowTemplateModal(false);
@@ -380,6 +388,11 @@ const loadTemplate = (template) => {
 
 // Delete template via API
 const deleteTemplate = async (templateId) => {
+  const template = templates.find(t => t.id === templateId);
+  if (!isDbTemplate(template)) {
+    alert('Preset templates cannot be deleted.');
+    return;
+  }
   setDeletingTemplateId(templateId);
   try {
     const response = await fetch(`${API_URL}/api/email-templates/${templateId}`, {
