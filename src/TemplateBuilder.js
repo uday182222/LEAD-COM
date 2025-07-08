@@ -214,6 +214,7 @@ useEffect(() => {
 
 // Add state for preset variable values
 const [presetVars, setPresetVars] = useState({});
+const [clonedFields, setClonedFields] = useState(null);
 
 // When a preset is selected, initialize presetVars with default or empty values for its fields
 const handlePresetSelect = (preset) => {
@@ -307,10 +308,11 @@ const saveTemplate = async () => {
   if (!templateName.trim()) return;
   setSavingTemplate(true);
   try {
+    // Use clonedFields if present (for cloned templates), else selectedFields
     const templateData = {
       name: templateName,
       html_template: htmlTemplate,
-      fields: selectedFields,
+      fields: clonedFields || selectedFields,
     };
     let response, data, newTemplate;
     if (currentTemplate && isDbTemplate(currentTemplate)) {
@@ -346,6 +348,7 @@ const saveTemplate = async () => {
     setTemplateName('');
     setShowTemplateModal(false);
     setCurrentTemplate(null);
+    setClonedFields(null); // Reset after save
     if (onTemplateComplete && newTemplate) {
       onTemplateComplete(newTemplate);
     }
@@ -413,6 +416,7 @@ const createNewTemplate = () => {
   setCurrentTemplate(null);
   setTemplateName('');
   setHtmlTemplate('');
+  setClonedFields(null);
   setShowTemplateModal(true);
 };
 
@@ -421,6 +425,7 @@ const cloneTemplate = (template) => {
   setCurrentTemplate(null); // New template, not editing existing
   setTemplateName(template.name + ' (Copy)');
   setHtmlTemplate(template.htmlTemplate || template.html_template || '');
+  setClonedFields(template.fields || []); // Use preset's fields
   setShowTemplateModal(true);
 };
 
