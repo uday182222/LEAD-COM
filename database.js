@@ -905,6 +905,103 @@ const clearAllPendingLeads = async () => {
   }
 };
 
+// Create a new email template
+const createEmailTemplate = async (templateData) => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      INSERT INTO email_templates (name, html_template, fields)
+      VALUES ($1, $2, $3)
+      RETURNING id, name, html_template, fields, created_at, updated_at
+    `;
+    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || [])];
+    const result = await client.query(query, values);
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error creating email template:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get all email templates
+const getEmailTemplates = async () => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT id, name, html_template, fields, created_at, updated_at
+      FROM email_templates
+      ORDER BY created_at DESC
+    `;
+    const result = await client.query(query);
+    return result.rows;
+  } catch (error) {
+    console.error('Error fetching email templates:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Get email template by ID
+const getEmailTemplateById = async (templateId) => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT id, name, html_template, fields, created_at, updated_at
+      FROM email_templates
+      WHERE id = $1
+    `;
+    const result = await client.query(query, [templateId]);
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error fetching email template by ID:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Update email template
+const updateEmailTemplate = async (templateId, templateData) => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      UPDATE email_templates
+      SET name = $1, html_template = $2, fields = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+      RETURNING id, name, html_template, fields, created_at, updated_at
+    `;
+    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || []), templateId];
+    const result = await client.query(query, values);
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error updating email template:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+// Delete email template
+const deleteEmailTemplate = async (templateId) => {
+  const client = await pool.connect();
+  try {
+    const query = 'DELETE FROM email_templates WHERE id = $1 RETURNING id, name';
+    const result = await client.query(query, [templateId]);
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    console.error('Error deleting email template:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   pool,
   testConnection,
@@ -928,5 +1025,10 @@ module.exports = {
   getTemplateById,
   deleteLead,
   deleteLeads,
-  clearAllPendingLeads
+  clearAllPendingLeads,
+  createEmailTemplate,
+  getEmailTemplates,
+  getEmailTemplateById,
+  updateEmailTemplate,
+  deleteEmailTemplate
 }; 

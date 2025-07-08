@@ -56,6 +56,22 @@ INSERT INTO leads (lead_id, first_name, last_name, email, phone, company, job_ti
 ('lead_sample_2', 'Jane', 'Smith', 'jane.smith@example.com', '5559876543', 'Design Inc', 'UI Designer', 'manual')
 ON CONFLICT (lead_id) DO NOTHING;
 
+-- Create email_templates table
+CREATE TABLE IF NOT EXISTS email_templates (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  html_template TEXT NOT NULL,
+  fields JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create trigger to automatically update updated_at for email_templates
+CREATE TRIGGER update_email_templates_updated_at 
+    BEFORE UPDATE ON email_templates 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Show table structure
 \d leads;
 
