@@ -619,7 +619,8 @@ app.post('/api/campaigns', async (req, res) => {
       // Create template in database
       const createdTemplate = await db.createTemplate({
         name: templateName,
-        file_name: templateName
+        html_template: templateData.htmlTemplate || '<html><body><h1>Default Template</h1></body></html>',
+        fields: templateData.fields || []
       });
       
       campaignData.templateId = createdTemplate.id;
@@ -1140,9 +1141,12 @@ app.get('/api/templates', async (req, res) => {
         
         if (!template) {
           // Create template in database
+          const filePath = path.join(templatesDir, file);
+          const htmlContent = fs.readFileSync(filePath, 'utf-8');
           template = await db.createTemplate({
             name: displayName,
-            file_name: file
+            html_template: htmlContent,
+            fields: []
           });
         }
         
@@ -1646,6 +1650,7 @@ app.get('/api/email-templates/:id', async (req, res) => {
 
 app.post('/api/email-templates', async (req, res) => {
   console.log("Received template data:", req.body);
+  console.log("Received html_template:", req.body.html_template);
   try {
     const { name, html_template, fields } = req.body;
     if (!name || !html_template) {
