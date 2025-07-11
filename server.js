@@ -12,6 +12,10 @@ import crypto from 'crypto';
 import mailer from './mailer.js';
 import emailQueue from './emailQueue.js';
 import jobRoutes from './routes/jobsRoutes.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
