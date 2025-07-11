@@ -22,7 +22,7 @@ export async function startCampaign(req, res) {
     // Enqueue jobs for each lead
     for (const lead of leads) {
       const html = replaceTemplateVars(templateHtml, lead);
-      await emailQueue.add('sendEmail', {
+      await emailQueue.add({
         to: lead.email,
         subject,
         html,
