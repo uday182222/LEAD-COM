@@ -1,6 +1,6 @@
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
-const fs = require('fs').promises;
-const path = require('path');
+import { SESClient, SendEmailCommand, GetSendQuotaCommand } from '@aws-sdk/client-ses';
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Email Service using Amazon SES API
@@ -255,7 +255,6 @@ const testSESConnection = async () => {
     }
 
     // Test by sending a simple command to verify connection
-    const { GetSendQuotaCommand } = require('@aws-sdk/client-ses');
     const command = new GetSendQuotaCommand({});
     await sesClient.send(command);
     
@@ -284,11 +283,13 @@ const getSESStatus = () => {
 // Initialize SES client on module load
 initializeSESClient();
 
-module.exports = {
+const emailService = {
   sendHTMLEmail,
   testSESConnection,
   getSESStatus,
   validateSESConfig,
   initializeSESClient,
   EMAIL_FROM
-}; 
+};
+
+export default emailService; 

@@ -1,5 +1,5 @@
-const nodemailer = require('nodemailer');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+import nodemailer from 'nodemailer';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 // Environment variables for email configuration
 const EMAIL_METHOD = process.env.EMAIL_METHOD || 'smtp'; // 'smtp' or 'ses-api'
@@ -419,7 +419,7 @@ const initializeEmailSystem = async () => {
 // Initialize on module load
 initializeEmailSystem();
 
-module.exports = {
+const mailer = {
   // Main functions
   sendEmail,
   sendHtmlEmail,
@@ -443,4 +443,6 @@ module.exports = {
   SMTP_PORT,
   SMTP_USER,
   SMTP_SECURE
-}; 
+};
+
+export default mailer; 

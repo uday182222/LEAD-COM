@@ -1,18 +1,17 @@
-// Load environment variables
-require('dotenv').config();
+import dotenv from 'dotenv';
+dotenv.config();
 
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const Papa = require('papaparse');
-const XLSX = require('xlsx');
-const path = require('path');
-const db = require('./database');
-const crypto = require('crypto');
-
-const mailer = require('./mailer');
-const emailQueue = require('./emailQueue');
-const jobRoutes = require('./routes/jobsRoutes.js');
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import Papa from 'papaparse';
+import XLSX from 'xlsx';
+import path from 'path';
+import db from './database.js';
+import crypto from 'crypto';
+import mailer from './mailer.js';
+import emailQueue from './emailQueue.js';
+import jobRoutes from './routes/jobsRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5001;

@@ -1,4 +1,4 @@
-const { Queue } = require('bullmq');
+import { Queue } from 'bullmq';
 
 const connection = {
   connection: {
@@ -8,4 +8,4 @@ const connection = {
 
 const emailQueue = new Queue('emailQueue', connection);
 
-module.exports = emailQueue; 
+export default emailQueue; 

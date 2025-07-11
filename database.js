@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 // Database configuration
 const dbConfig = {
@@ -1003,7 +1003,7 @@ const deleteEmailTemplate = async (templateId) => {
   }
 };
 
-module.exports = {
+const db = {
   pool,
   testConnection,
   initializeDatabase,
@@ -1032,4 +1032,6 @@ module.exports = {
   getEmailTemplateById,
   updateEmailTemplate,
   deleteEmailTemplate
-}; 
+};
+
+export default db; 
