@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme } from './ThemeContext';
+import { useTheme } from './ThemeContext.js';
 import toast from 'react-hot-toast';
 
 const SESConfigPanel = () => {

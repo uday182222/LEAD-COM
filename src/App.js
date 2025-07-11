@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
-import { ThemeProvider, useTheme } from './ThemeContext';
-import LeadFileUpload from './LeadFileUpload';
-import FieldSelection from './FieldSelection';
-import TemplateBuilder from './TemplateBuilder';
-import CampaignForm from './CampaignForm';
-import Dashboard from './Dashboard';
-import SESConfigPanel from './SESConfigPanel';
-import PendingLeadsManager from './PendingLeadsManager';
+import { ThemeProvider, useTheme } from './ThemeContext.js';
+import LeadFileUpload from './LeadFileUpload.js';
+import FieldSelection from './FieldSelection.js';
+import TemplateBuilder from './TemplateBuilder.js';
+import CampaignForm from './CampaignForm.js';
+import Dashboard from './Dashboard.js';
+import SESConfigPanel from './SESConfigPanel.js';
+import PendingLeadsManager from './PendingLeadsManager.js';
 import './App.css';
 
 function AppContent() {
