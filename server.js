@@ -11,6 +11,8 @@ const db = require('./database');
 const crypto = require('crypto');
 
 const mailer = require('./mailer');
+const emailQueue = require('./emailQueue');
+const jobRoutes = require('./routes/jobsRoutes.js');
 
 const app = express();
 const PORT = process.env.PORT || 5001;

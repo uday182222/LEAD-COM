@@ -215,16 +215,23 @@ useEffect(() => {
 // Add state for preset variable values
 const [presetVars, setPresetVars] = useState({});
 const [clonedFields, setClonedFields] = useState(null);
+const [fields, setFields] = useState([]);
 
 // When a preset is selected, initialize presetVars with default or empty values for its fields
 const handlePresetSelect = (preset) => {
-  setCurrentTemplate(preset);
-  setTemplateName(preset.name);
-  setHtmlTemplate(preset.htmlTemplate);
-  // Initialize variables
-  const vars = {};
-  (preset.fields || []).forEach(f => { vars[f] = ''; });
-  setPresetVars(vars);
+  openTemplateModal(preset);
+};
+
+// When opening the modal for edit, clone, or create
+const openTemplateModal = (template, isClone = false) => {
+  setCurrentTemplate(isClone ? null : template);
+  setTemplateName(template?.name ? (isClone ? template.name + ' (Copy)' : template.name) : '');
+  setHtmlTemplate(template?.htmlTemplate || template?.html_template || '');
+  let templateFields = template?.fields;
+  if (!templateFields || templateFields.length === 0) {
+    templateFields = extractVariablesFromHTML(template?.htmlTemplate || template?.html_template || '');
+  }
+  setFields(templateFields);
   setShowTemplateModal(true);
 };
 
@@ -300,6 +307,17 @@ const sendTestEmail = async () => {
   }
 };
 
+// Utility to extract unique variable names in double curly braces
+function extractVariablesFromHTML(html) {
+  const regex = /{{\s*([a-zA-Z0-9_]+)\s*}}/g;
+  const variables = new Set();
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    variables.add(match[1]);
+  }
+  return Array.from(variables);
+}
+
 // Helper to check if a template is a DB template (numeric ID)
 const isDbTemplate = (template) => template && typeof template.id === 'number';
 
@@ -308,11 +326,10 @@ const saveTemplate = async () => {
   if (!templateName.trim()) return;
   setSavingTemplate(true);
   try {
-    // Use clonedFields if present (for cloned templates), else selectedFields
     const templateData = {
       name: templateName,
       html_template: htmlTemplate,
-      fields: clonedFields || selectedFields,
+      fields: fields,
     };
     let response, data, newTemplate;
     if (currentTemplate && isDbTemplate(currentTemplate)) {
@@ -383,10 +400,7 @@ const createCampaign = () => {
 };
 
 const loadTemplate = (template) => {
-  setCurrentTemplate(template);
-  setHtmlTemplate(template.htmlTemplate || '');
-  setTemplateName(template.name);
-  setShowTemplateModal(true);
+  openTemplateModal(template);
 };
 
 // Delete template via API
@@ -413,20 +427,12 @@ const deleteTemplate = async (templateId) => {
 };
 
 const createNewTemplate = () => {
-  setCurrentTemplate(null);
-  setTemplateName('');
-  setHtmlTemplate('');
-  setClonedFields(null);
-  setShowTemplateModal(true);
+  openTemplateModal({}, false);
 };
 
 // Add this function to clone a preset template
 const cloneTemplate = (template) => {
-  setCurrentTemplate(null); // New template, not editing existing
-  setTemplateName(template.name + ' (Copy)');
-  setHtmlTemplate(template.htmlTemplate || template.html_template || '');
-  setClonedFields(template.fields || []); // Use preset's fields
-  setShowTemplateModal(true);
+  openTemplateModal(template, true);
 };
 
 const getFieldDisplayName = (field) => {
@@ -456,6 +462,13 @@ if (currentTemplate && currentTemplate.fields && !currentTemplate.fields.include
 
 // Combine presetTemplates and user templates for management list
 const allTemplates = [...presetTemplates, ...templates];
+
+// useEffect to update fields live as htmlTemplate changes (if fields are not manually set)
+useEffect(() => {
+  if (!currentTemplate || !currentTemplate.fields || currentTemplate.fields.length === 0) {
+    setFields(extractVariablesFromHTML(htmlTemplate));
+  }
+}, [htmlTemplate]);
 
 return (
   <div style={{ 
