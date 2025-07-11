@@ -1,44 +1,46 @@
-require('dotenv').config();
-const Queue = require('bull');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+import { Worker, QueueEvents } from 'bullmq';
+import dotenv from 'dotenv';
+dotenv.config();
 
-console.log('🚀 Worker is up and listening for jobs...');
+// Assume these helpers are already imported elsewhere in your project
+import { sendEmailToLead } from './utils/sendEmail.js';
+import db from './database.js';
 
-const emailQueue = new Queue('emailQueue', process.env.REDIS_URL, {
-  redis: { tls: {} }
+const REDIS_URL = process.env.REDIS_URL;
+if (!REDIS_URL) throw new Error('REDIS_URL is not set');
+
+const connection = { connection: { url: REDIS_URL } };
+
+// Worker to process jobs from campaignQueue
+const worker = new Worker(
+  'campaignQueue',
+  async (job) => {
+    const { lead, campaignId } = job.data;
+    try {
+      await sendEmailToLead(lead);
+      await db.updateCampaignLeadStatus(campaignId, lead.id, 'COMPLETED');
+      return { status: 'completed', leadId: lead.id };
+    } catch (err) {
+      await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED');
+      throw err;
+    }
+  },
+  connection
+);
+
+// Log completed and failed jobs
+const queueEvents = new QueueEvents('campaignQueue', connection);
+
+queueEvents.on('completed', ({ jobId }) => {
+  console.log(`✅ Job ${jobId} completed`);
 });
 
-// Global queue error listener
-emailQueue.on('error', (err) => {
-  console.error('💥 Queue error:', err);
+queueEvents.on('failed', ({ jobId, failedReason }) => {
+  console.error(`❌ Job ${jobId} failed: ${failedReason}`);
 });
 
-const ses = new SESClient({
-  region: process.env.REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  }
+worker.on('error', (err) => {
+  console.error('Worker error:', err);
 });
 
-emailQueue.process(async (job) => {
-  console.log('📥 Job received by worker:', job.id, job.data);
-  try {
-    const { to, subject, html } = job.data;
-    console.log(`⏳ Sending email to: ${to}`);
-
-    const params = {
-      Source: process.env.EMAIL_FROM,
-      Destination: { ToAddresses: [to] },
-      Message: {
-        Subject: { Data: subject },
-        Body: { Html: { Data: html } }
-      }
-    };
-
-    const result = await ses.send(new SendEmailCommand(params));
-    console.log('✅ Email sent to:', to, 'SES MessageId:', result.MessageId);
-  } catch (err) {
-    console.error('❌ Job failed:', err);
-  }
-}); 
+console.log('🚀 Worker is running and listening for campaignQueue jobs...'); 
