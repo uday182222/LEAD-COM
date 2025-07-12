@@ -918,141 +918,130 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     
     console.log(`🚀 Campaign "${campaign.name}" (ID: ${campaignId}) started successfully`);
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
+    let emailTemplate = null;
+    let templatePath = null;
     if (templateInfo) {
-      console.log(`📄 Using template: ${templateInfo.name} (${templateInfo.file_name})`);
-    }
-    
-    // Send messages to all leads in the campaign
-    if (campaign.leads && campaign.leads.length > 0) {
-      let sentCount = 0;
-      let failedCount = 0;
-      
-      // Determine template to use
-      let emailTemplate = null;
-      let templatePath = null;
-      
-      if (templateInfo) {
-        if (!templateInfo.file_name) {
-          console.error(`❌ Missing template file_name for campaign ID: ${campaign.id}`);
-          throw new Error('Template file is missing in templateInfo. Cannot build email template path.');
-        }
-        const templatePath = `templates/${templateInfo.file_name}`;
-        emailTemplate = {
-          type: 'email',
-          subject: templateInfo.subject || `Hello from ${campaign.name}`,
-          templatePath
-        };
-      } else {
-        console.error(`❌ No templateInfo found for campaign ID: ${campaign.id}`);
-        throw new Error('Template info not found. Cannot proceed with email campaign.');
+      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
+        console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
+        throw new Error('Template file_name must be a valid .html filename');
       }
-      
-      if (emailTemplate.type === 'email') {
-        // Send emails to all leads
-        console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
-        
-        for (const lead of campaign.leads) {
-          try {
-            if (!lead.email || lead.email.trim() === '') {
-              console.log(`⚠️ Skipping lead ${lead.id} - no email`);
-              failedCount++;
-              continue;
-            }
-            
-            let result;
-            
-            if (templatePath) {
-              // Use sendHTMLEmail with template file
-              
-              // Prepare template data from lead fields
-              const templateData = {
-                first_name: lead.first_name || '',
-                last_name: lead.last_name || '',
-                email: lead.email || '',
-                company: lead.company || '',
-                company_name: lead.company || '',
-                custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
-                cta_link: template?.cta_link || 'https://example.com',
-                cta_text: template?.cta_text || 'Learn More',
-                unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
-              };
-              
-              result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
-            } else {
-              // Use legacy text email approach
-              let subject = emailTemplate.subject;
-              let body = emailTemplate.body;
-              
-              if (emailTemplate.fields && Array.isArray(emailTemplate.fields)) {
-                emailTemplate.fields.forEach(field => {
-                  const placeholder = `{${field}}`;
-                  const value = lead[field] || '';
-                  subject = subject.replace(new RegExp(placeholder, 'g'), value);
-                  body = body.replace(new RegExp(placeholder, 'g'), value);
-                });
-              }
-              
-              result = await mailer.sendEmail(lead.email, subject, body);
-            }
-            
-            if (result.success) {
-              console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
-              sentCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-              
-              // Delete the lead from database after successful email delivery
-              try {
-                await db.deleteLeadAfterEmail(lead.id);
-                console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
-              } catch (deleteError) {
-                console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
-              }
-            } else {
-              console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
-              failedCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
-            }
-            
-            await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
-          } catch (error) {
-            console.error(`❌ Error processing lead ${lead.id}:`, error.message);
-            failedCount++;
-            await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', error.message);
-          }
-        }
-        console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
-      } else {
-        // Only email campaigns are supported
-        console.log(`⚠️ Template type not supported: ${template?.type}`);
-        return res.status(400).json({
-          success: false,
-          error: 'Only email campaigns are supported'
-        });
-      }
+      templatePath = `templates/${templateInfo.file_name}`;
+      emailTemplate = {
+        type: 'email',
+        subject: templateInfo.subject || `Hello from ${campaign.name}`,
+        templatePath
+      };
     } else {
-      console.log(`⚠️ No leads found for campaign ${campaignId}`);
+      console.error(`❌ No templateInfo found for campaign ID: ${campaign.id}`);
+      throw new Error('Template info not found. Cannot proceed with email campaign.');
     }
     
-    res.json({
-      success: true,
-      message: 'Campaign started successfully',
-      campaign: {
-        id: updatedCampaign.id,
-        name: updatedCampaign.name,
-        status: updatedCampaign.status,
-        updatedAt: updatedCampaign.updated_at,
-        leadCount: campaign.leadCount
+    if (emailTemplate.type === 'email') {
+      // Send emails to all leads
+      console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
+      
+      for (const lead of campaign.leads) {
+        try {
+          if (!lead.email || lead.email.trim() === '') {
+            console.log(`⚠️ Skipping lead ${lead.id} - no email`);
+            failedCount++;
+            continue;
+          }
+          
+          let result;
+          
+          if (templatePath) {
+            // Use sendHTMLEmail with template file
+            
+            // Prepare template data from lead fields
+            const templateData = {
+              first_name: lead.first_name || '',
+              last_name: lead.last_name || '',
+              email: lead.email || '',
+              company: lead.company || '',
+              company_name: lead.company || '',
+              custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
+              cta_link: template?.cta_link || 'https://example.com',
+              cta_text: template?.cta_text || 'Learn More',
+              unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
+            };
+            
+            result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
+          } else {
+            // Use legacy text email approach
+            let subject = emailTemplate.subject;
+            let body = emailTemplate.body;
+            
+            if (emailTemplate.fields && Array.isArray(emailTemplate.fields)) {
+              emailTemplate.fields.forEach(field => {
+                const placeholder = `{${field}}`;
+                const value = lead[field] || '';
+                subject = subject.replace(new RegExp(placeholder, 'g'), value);
+                body = body.replace(new RegExp(placeholder, 'g'), value);
+              });
+            }
+            
+            result = await mailer.sendEmail(lead.email, subject, body);
+          }
+          
+          if (result.success) {
+            console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
+            sentCount++;
+            await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
+            
+            // Delete the lead from database after successful email delivery
+            try {
+              await db.deleteLeadAfterEmail(lead.id);
+              console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
+            } catch (deleteError) {
+              console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
+            }
+          } else {
+            console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
+            failedCount++;
+            await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
+        } catch (error) {
+          console.error(`❌ Error processing lead ${lead.id}:`, error.message);
+          failedCount++;
+          await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', error.message);
+        }
       }
-    });
-    
-  } catch (error) {
-    console.error('Start campaign error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to start campaign'
-    });
+      console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
+    } else {
+      // Only email campaigns are supported
+      console.log(`⚠️ Template type not supported: ${template?.type}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Only email campaigns are supported'
+      });
+    }
+  } else {
+    console.log(`⚠️ No leads found for campaign ${campaignId}`);
   }
+  
+  res.json({
+    success: true,
+    message: 'Campaign started successfully',
+    campaign: {
+      id: updatedCampaign.id,
+      name: updatedCampaign.name,
+      status: updatedCampaign.status,
+      updatedAt: updatedCampaign.updated_at,
+      leadCount: campaign.leadCount
+    }
+  });
+  
+} catch (error) {
+  console.error('Start campaign error:', error);
+  res.status(500).json({
+    success: false,
+    error: error.message,
+    message: 'Failed to start campaign'
+  });
+}
 });
 
 // Stop campaign - stop sending messages
