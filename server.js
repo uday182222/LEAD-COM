@@ -951,7 +951,14 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
       let sentCount = 0;
       let failedCount = 0;
-      for (const lead of campaign.leads) {
+      console.log("📌 campaignId passed to getAvailableLeads:", campaignId);
+      const leads = await db.getAvailableLeads(campaignId);
+      console.log("📊 Campaign has", leads?.length || 0, "leads to process");
+      if (!leads || !Array.isArray(leads) || leads.length === 0) {
+        console.error('❌ No leads found for campaign:', campaignId);
+        throw new Error('No leads available for this campaign.');
+      }
+      for (const lead of leads) {
         const isHTMLValid = !!templateInfo.html_template && templateInfo.html_template.trim().length > 0;
         const emailTemplate = {
           from: "team@motionfalcon.com",
