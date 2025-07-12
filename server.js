@@ -1019,10 +1019,6 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         error: 'Only email campaigns are supported'
       });
     }
-  } else {
-    console.log(`⚠️ No leads found for campaign ${campaignId}`);
-  }
-  
   res.json({
     success: true,
     message: 'Campaign started successfully',
@@ -1034,8 +1030,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       leadCount: campaign.leadCount
     }
   });
-  
-  } catch (error) {
+
+} catch (error) {
 
     console.error('Start campaign error:', error);
     res.status(500).json({
@@ -1044,6 +1040,11 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       message: 'Failed to start campaign'
     });
   }
+});
+
+// Stop campaign - stop sending messages
+app.post('/api/campaigns/:id/stop', async (req, res) => {
+  try {
     const campaignId = parseInt(req.params.id);
     
     if (isNaN(campaignId)) {
