@@ -913,26 +913,33 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       }
     }
     
+    // After fetching templateInfo, add debug log
+    console.log('📦 templateInfo:', {
+      id: templateInfo?.id,
+      subject: templateInfo?.subject,
+      file_name: templateInfo?.file_name,
+      htmlLength: templateInfo?.html_template?.length || 0
+    });
+
+    // Build emailTemplate robustly
+    const htmlFromDb = templateInfo?.html_template?.length > 20 ? templateInfo.html_template : null;
+    const filePath = !htmlFromDb && templateInfo?.file_name ? `templates/${templateInfo.file_name}` : null;
+
+    const emailTemplate = {
+      type: 'email',
+      subject: templateInfo.subject || `Hello from ${campaign.name}`,
+      html: htmlFromDb,
+      templatePath: filePath
+    };
+
+    console.log('📨 Final emailTemplate:', emailTemplate);
+    
     // Update campaign status to RUNNING
     const updatedCampaign = await db.updateCampaignStatus(campaignId, 'RUNNING');
     
     console.log(`🚀 Campaign "${campaign.name}" (ID: ${campaignId}) started successfully`);
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
-    let emailTemplate = {
-      type: 'email',
-      subject: templateInfo.subject || `Hello from ${campaign.name}`,
-    };
-    if (templateInfo.html_template && templateInfo.html_template.trim().startsWith('<!DOCTYPE html')) {
-      emailTemplate.html = templateInfo.html_template;
-      console.log('✅ Using HTML from database for campaign email');
-    } else {
-      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<')) {
-        console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
-        throw new Error(`Invalid template file_name: ${templateInfo.file_name}`);
-      }
-      emailTemplate.templatePath = path.join('templates', templateInfo.file_name);
-      console.log(`📄 Using template file: ${emailTemplate.templatePath}`);
-    }
+    
     if (emailTemplate.type === 'email') {
       // Send emails to all leads
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
@@ -957,6 +964,12 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             cta_text: template?.cta_text || 'Learn More',
             unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
           };
+          console.log('📤 About to send:', {
+            to: lead.email,
+            subject: emailTemplate.subject,
+            hasHTML: !!emailTemplate.html,
+            templatePath: emailTemplate.templatePath
+          });
           const result = await emailService.sendHTMLEmail(
             lead.email,
             emailTemplate.subject,
