@@ -913,12 +913,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       }
     }
     
-    // After fetching templateInfo, add debug log
-    console.log('📦 templateInfo:', {
-      id: templateInfo?.id,
-      subject: templateInfo?.subject,
-      file_name: templateInfo?.file_name,
-      htmlLength: templateInfo?.html_template?.length || 0
+    // After fetching templateInfo from DB
+    console.log("📄 [DB Fetch] What is the template content?", {
+      file_name: templateInfo.file_name,
+      htmlLength: templateInfo.html_template?.length || 0,
     });
 
     // Build emailTemplate robustly
@@ -964,39 +962,29 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       let failedCount = 0;
       for (const lead of campaign.leads) {
         try {
-          if (!lead.email || lead.email.trim() === '') {
-            console.log(`⚠️ Skipping lead ${lead.id} - no email`);
-            failedCount++;
-            continue;
-          }
-          // Prepare template data from lead fields
-          const templateData = {
-            first_name: lead.first_name || '',
-            last_name: lead.last_name || '',
-            email: lead.email || '',
-            company: lead.company || '',
-            company_name: lead.company || '',
-            custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
-            cta_link: template?.cta_link || 'https://example.com',
-            cta_text: template?.cta_text || 'Learn More',
-            unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
-          };
-          console.log('📤 About to send:', {
+          // Build emailTemplate for this lead
+          const emailTemplate = {
+            from: "team@motionfalcon.com",
             to: lead.email,
-            subject: emailTemplate.subject,
-            hasHTML: !!emailTemplate.html,
-            htmlLength: emailTemplate.html ? emailTemplate.html.length : 0,
-            templatePath: emailTemplate.templatePath
-          });
-          const result = await emailService.sendHTMLEmail(
-            lead.email,
-            emailTemplate.subject,
-            {
-              html: emailTemplate.html,
-              templatePath: emailTemplate.templatePath
+            subject: campaign.subject,
+            html: templateInfo.html_template || null,
+            templatePath: templateInfo.html_template ? null : `templates/${templateInfo.file_name}`,
+            variables: {
+              first_name: lead.first_name,
+              last_name: lead.last_name,
+              company: lead.company,
+              email: lead.email,
+              ...(campaign.variables || {})
             },
-            templateData
-          );
+          };
+          console.log("👉 [Before sendHTMLEmail] What does the email template look like?", {
+            subject: emailTemplate.subject,
+            from: emailTemplate.from,
+            to: lead.email,
+            htmlLength: emailTemplate.html?.length || 0,
+            templatePath: emailTemplate.templatePath,
+          });
+          const result = await emailService.sendHTMLEmail(emailTemplate);
           if (result.success) {
             console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
             sentCount++;

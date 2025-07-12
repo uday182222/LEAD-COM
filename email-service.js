@@ -144,6 +144,15 @@ const loadHTMLTemplate = async (templatePath) => {
  * @returns {Promise<Object>} Result object with success status and details
  */
 const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
+  console.log("📨 [Inside sendHTMLEmail] Did we receive HTML or fallback to templatePath?", {
+    htmlExists: !!options.html,
+    htmlLength: options.html?.length || 0,
+    templatePath: options.templatePath || 'None',
+  });
+  if (!options.html && !options.templatePath) {
+    console.log("❌ [ERROR] Missing both HTML and templatePath — cannot send email!");
+    throw new Error('No HTML source provided: options.html or options.templatePath required');
+  }
   try {
     if (!sesClient) {
       throw new Error('SES API client is not initialized. Please check your AWS credentials.');
