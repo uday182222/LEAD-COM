@@ -974,6 +974,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           htmlLength: emailTemplate.html?.length || 0,
           templatePath: emailTemplate.templatePath,
         });
+        console.log("📤 Final email template before sending:", {
+          htmlLength: emailTemplate.html?.length || 0,
+          templatePath: emailTemplate.templatePath,
+        });
         const result = await emailService.sendHTMLEmail(emailTemplate);
         if (result.success) {
           console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
