@@ -1,6 +1,7 @@
 // Test script for the new mailer utility
-require('dotenv').config();
-const mailer = require('./mailer');
+import dotenv from 'dotenv';
+dotenv.config();
+import mailer from './mailer.js';
 
 async function testMailer() {
   console.log('🧪 Testing Mailer Utility\n');

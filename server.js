@@ -13,6 +13,11 @@ import mailer from './mailer.js';
 import emailQueue from './emailQueue.js';
 import jobRoutes from './routes/jobsRoutes.js';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
+import fsp from 'fs/promises';
+import { SESClient, GetAccountAttributesCommand } from '@aws-sdk/client-ses';
+import { sendHTMLEmail } from './email-service.js';
+import emailService from './email-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -963,7 +968,6 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             
             if (templatePath) {
               // Use sendHTMLEmail with template file
-              const { sendHTMLEmail } = require('./email-service');
               
               // Prepare template data from lead fields
               const templateData = {
@@ -1121,13 +1125,10 @@ app.post('/api/campaigns/:id/stop', async (req, res) => {
 // Get available HTML templates
 app.get('/api/templates', async (req, res) => {
   try {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
     const templatesDir = path.join(process.cwd(), 'templates');
     
     try {
-      const files = await fs.readdir(templatesDir);
+      const files = await fsp.readdir(templatesDir);
       const htmlTemplates = files.filter(file => file.endsWith('.html'));
       
       // Get templates from database
@@ -1292,29 +1293,12 @@ app.post('/api/test-email', async (req, res) => {
     });
 
     // Send test email using the email service
-    const emailService = require('./email-service');
-    const fs = require('fs').promises;
-    const path = require('path');
-    const tempTemplatePath = path.join(__dirname, 'temp-test-template.html');
+    const result = await emailService.sendHTMLEmail(to, subject, htmlTemplate, templateData);
 
-    try {
-      await fs.writeFile(tempTemplatePath, emailContent);
-      const result = await emailService.sendHTMLEmail(to, subject, tempTemplatePath, templateData);
-      await fs.unlink(tempTemplatePath); // Clean up temp file
-
-      if (result.success) {
-        res.json({ success: true, message: 'Test email sent successfully!' });
-      } else {
-        res.status(500).json({ error: result.error || 'Failed to send test email' });
-      }
-    } catch (error) {
-      // Clean up temp file if it exists
-      try {
-        await fs.unlink(tempTemplatePath);
-      } catch (cleanupError) {
-        // Ignore cleanup errors
-      }
-      throw error;
+    if (result.success) {
+      res.json({ success: true, message: 'Test email sent successfully!' });
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send test email' });
     }
   } catch (error) {
     console.error('Test email error:', error);
@@ -1423,21 +1407,6 @@ app.post('/api/ses-config', async (req, res) => {
     };
 
     // Test the configuration by trying to initialize SES
-    const fs = require('fs');
-    const path = require('path');
-    
-    // Create a temporary .env file for testing
-    const envContent = `AWS_REGION=${awsRegion}
-AWS_ACCESS_KEY_ID=${awsAccessKeyId}
-AWS_SECRET_ACCESS_KEY=${awsSecretAccessKey}
-EMAIL_FROM=${emailFrom}
-EMAIL_METHOD=ses-api`;
-
-    const tempEnvPath = path.join(__dirname, '.env.temp');
-    fs.writeFileSync(tempEnvPath, envContent);
-
-    // Test the configuration
-    const { SESClient } = require('@aws-sdk/client-ses');
     const testClient = new SESClient({
       region: awsRegion,
       credentials: {
@@ -1447,7 +1416,6 @@ EMAIL_METHOD=ses-api`;
     });
 
     // Try to get SES account attributes to test connection
-    const { GetAccountAttributesCommand } = require('@aws-sdk/client-ses');
     const command = new GetAccountAttributesCommand();
     
     try {
@@ -1588,15 +1556,12 @@ app.get('/api/templates/:templateName/preview', async (req, res) => {
     
     // Load the HTML template
     const templatePath = `templates/${templateName}`;
-    const { sendHTMLEmail } = require('./email-service');
     
     try {
       // Load HTML template content
-      const fs = require('fs').promises;
-      const path = require('path');
       const resolvedPath = path.resolve(process.cwd(), templatePath);
       
-      const htmlContent = await fs.readFile(resolvedPath, 'utf-8');
+      const htmlContent = await fsp.readFile(resolvedPath, 'utf-8');
       
       // Replace template variables
       let processedHTML = htmlContent;

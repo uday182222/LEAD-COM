@@ -1,6 +1,7 @@
 // Test script for Amazon SES API email sending
-require('dotenv').config();
-const { sendEmail, validateEmailConfig } = require('./email-config');
+import dotenv from 'dotenv';
+dotenv.config();
+import { sendEmail, validateEmailConfig } from './email-config.js';
 
 async function testSESEmail() {
   console.log('🧪 Testing Amazon SES API Email Sending\n');

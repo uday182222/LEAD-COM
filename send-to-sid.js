@@ -1,5 +1,6 @@
-require('dotenv').config();
-const { sendHTMLEmail } = require('./email-service');
+import dotenv from 'dotenv';
+dotenv.config();
+import { sendHTMLEmail } from './email-service.js';
 
 (async () => {
   const result = await sendHTMLEmail(

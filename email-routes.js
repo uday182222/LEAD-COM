@@ -1,5 +1,5 @@
-const express = require('express');
-const { sendHTMLEmail, sendTextEmail, testSESConnection, getSESStatus } = require('./email-service');
+import express from 'express';
+import { sendHTMLEmail, sendTextEmail, testSESConnection, getSESStatus } from './email-service.js';
 
 const router = express.Router();
 
@@ -148,4 +148,4 @@ router.post('/send-welcome', async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router; 

@@ -1,5 +1,6 @@
-require('dotenv').config();
-const Queue = require('bull');
+import dotenv from 'dotenv';
+dotenv.config();
+import Queue from 'bull';
 console.log('Connecting to Redis at:', process.env.REDIS_URL);
 const emailQueue = new Queue('emailQueue', process.env.REDIS_URL, {
   redis: {
