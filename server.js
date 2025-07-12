@@ -15,7 +15,8 @@ import jobRoutes from './routes/jobsRoutes.js';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import fsp from 'fs/promises';
-import { SESClient, GetAccountAttributesCommand } from '@aws-sdk/client-ses';
+import pkg from '@aws-sdk/client-ses';
+const { SESClient, GetAccountAttributesCommand } = pkg;
 import { sendHTMLEmail } from './email-service.js';
 import emailService from './email-service.js';
 

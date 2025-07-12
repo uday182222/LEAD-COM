@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import pkg from '@aws-sdk/client-ses';
+const { SESClient, SendEmailCommand } = pkg;
 
 // Environment variables for email configuration
 const EMAIL_METHOD = process.env.EMAIL_METHOD || 'smtp'; // 'smtp' or 'ses-api'

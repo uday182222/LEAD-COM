@@ -1,5 +1,6 @@
 // Email Configuration using Amazon SES API
-import { SESClient, SendEmailCommand, GetAccountAttributesCommand } from '@aws-sdk/client-ses';
+import pkg from '@aws-sdk/client-ses';
+const { SESClient, SendEmailCommand, GetAccountAttributesCommand } = pkg;
 
 // Environment variables for Amazon SES
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';

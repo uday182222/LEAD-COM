@@ -1,4 +1,5 @@
-import { SESClient, SendEmailCommand, GetSendQuotaCommand } from '@aws-sdk/client-ses';
+import pkg from '@aws-sdk/client-ses';
+const { SESClient, SendEmailCommand, GetSendQuotaCommand } = pkg;
 import fs from 'fs/promises';
 import path from 'path';
 
