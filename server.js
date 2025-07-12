@@ -939,7 +939,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (emailTemplate.type === 'email') {
       // Send emails to all leads
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
-      
+      let sentCount = 0;
+      let failedCount = 0;
       for (const lead of campaign.leads) {
         try {
           if (!lead.email || lead.email.trim() === '') {
@@ -1034,19 +1035,15 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     }
   });
   
-} catch (error) {
-  console.error('Start campaign error:', error);
-  res.status(500).json({
-    success: false,
-    error: error.message,
-    message: 'Failed to start campaign'
-  });
-}
-});
+  } catch (error) {
 
-// Stop campaign - stop sending messages
-app.post('/api/campaigns/:id/stop', async (req, res) => {
-  try {
+    console.error('Start campaign error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to start campaign'
+    });
+  }
     const campaignId = parseInt(req.params.id);
     
     if (isNaN(campaignId)) {
