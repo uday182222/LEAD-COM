@@ -950,12 +950,17 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     }
     
     let emailHTML = '';
-    if (templateInfo.html_template) {
+    if (templateInfo.html_template && templateInfo.html_template.trim().startsWith('<!DOCTYPE html')) {
+      console.log('✅ Using HTML from database');
       emailHTML = templateInfo.html_template;
-    } else if (templatePath) {
-      emailHTML = await fsp.readFile(templatePath, 'utf8');
     } else {
-      throw new Error('No valid email template source found.');
+      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
+        console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
+        throw new Error('Template file_name must be a valid .html filename');
+      }
+      const templatePath = path.join('templates', templateInfo.file_name);
+      console.log(`📄 Loading template from: ${templatePath}`);
+      emailHTML = await fsp.readFile(templatePath, 'utf8');
     }
     
     if (emailTemplate.type === 'email') {
@@ -970,7 +975,6 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             failedCount++;
             continue;
           }
-          let result;
           // Prepare template data from lead fields
           const templateData = {
             first_name: lead.first_name || '',
@@ -983,7 +987,12 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             cta_text: template?.cta_text || 'Learn More',
             unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
           };
-          result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, null, templateData, emailHTML);
+          await emailService.sendHTMLEmail(
+            lead.email,
+            templateInfo.subject || `Hello from ${campaign.name}`,
+            emailHTML,
+            templateData
+          );
           
           if (result.success) {
             console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
