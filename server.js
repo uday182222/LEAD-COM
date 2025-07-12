@@ -953,7 +953,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       let failedCount = 0;
       console.log("📌 campaignId passed to getAvailableLeads:", campaignId);
       const leads = await db.getAvailableLeads(campaignId);
-      console.log("📊 Campaign has", leads?.length || 0, "leads to process");
+      console.log("📊 Campaign has", Array.isArray(leads) ? leads.length : 0, "leads to process");
       if (!leads || !Array.isArray(leads) || leads.length === 0) {
         console.error('❌ No leads found for campaign:', campaignId);
         throw new Error('No leads available for this campaign.');
