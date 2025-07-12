@@ -922,14 +922,31 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     });
 
     // Build emailTemplate robustly
-    const htmlFromDb = templateInfo?.html_template?.length > 20 ? templateInfo.html_template : null;
-    const filePath = !htmlFromDb && templateInfo?.file_name ? `templates/${templateInfo.file_name}` : null;
+    let html = null;
+    let templatePath = null;
+    if (templateInfo.html_template && templateInfo.html_template.trim().length > 0) {
+      html = templateInfo.html_template;
+      console.log(`📧 Using html_template from DB (length: ${html.length})`);
+    } else if (templateInfo.file_name && templateInfo.file_name.endsWith('.html')) {
+      templatePath = `templates/${templateInfo.file_name}`;
+      const fs = require('fs');
+      const path = require('path');
+      const absPath = path.join(process.cwd(), templatePath);
+      const exists = fs.existsSync(absPath);
+      console.log(`📄 Using templatePath: ${templatePath} (exists: ${exists ? '✅' : '❌'})`);
+      if (!exists) {
+        throw new Error(`Template file does not exist: ${templatePath}`);
+      }
+    } else {
+      console.error('❌ No valid html_template or file_name found in templateInfo:', templateInfo);
+      throw new Error('No valid HTML template source found (neither html_template nor file_name)');
+    }
 
     const emailTemplate = {
       type: 'email',
       subject: templateInfo.subject || `Hello from ${campaign.name}`,
-      html: htmlFromDb,
-      templatePath: filePath
+      html,
+      templatePath
     };
 
     console.log('📨 Final emailTemplate:', emailTemplate);
@@ -968,6 +985,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             to: lead.email,
             subject: emailTemplate.subject,
             hasHTML: !!emailTemplate.html,
+            htmlLength: emailTemplate.html ? emailTemplate.html.length : 0,
             templatePath: emailTemplate.templatePath
           });
           const result = await emailService.sendHTMLEmail(
