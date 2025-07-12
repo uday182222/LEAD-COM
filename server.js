@@ -973,13 +973,12 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         throw new Error('No leads available for this campaign.');
       }
       for (const lead of leads) {
-        const isHTMLValid = !!templateInfo.html_template && templateInfo.html_template.trim().length > 0;
         const emailTemplate = {
           from: "team@motionfalcon.com",
           to: lead.email,
           subject: campaign.subject,
-          html: isHTMLValid ? templateInfo.html_template : null,
-          templatePath: isHTMLValid ? null : `templates/${templateInfo.file_name}`,
+          html: templateInfo.html_template,
+          templatePath: null,
           variables: {
             first_name: lead.first_name,
             last_name: lead.last_name,
