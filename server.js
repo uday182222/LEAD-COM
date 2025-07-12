@@ -912,10 +912,16 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         });
       }
     }
-    
-    // Log and validate template type
-    console.log("📦 Template type:", templateInfo.type);
+    // ✅ Step 2: Sanity Log Campaign and Template
+    console.log("🎯 Campaign:", campaign);
+    console.log("📄 Template Info:", templateInfo);
+    // ✅ Step 1: Confirm Template Has Type
     if (!templateInfo?.type) console.warn("⚠️ Template type is missing");
+    console.log("📦 Template type:", templateInfo.type);
+    if (templateInfo?.type !== 'email') {
+      console.warn("⚠️ Template type not supported:", templateInfo?.type);
+      return res.status(400).json({ error: 'Template type not supported' });
+    }
 
     // After fetching templateInfo from DB
     console.log("📄 [DB Fetch] What is the template content?", {
@@ -959,6 +965,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       console.log("📌 campaignId passed to getAvailableLeads:", campaignId);
       let leads = await db.getAvailableLeads(campaignId);
       if (!Array.isArray(leads)) leads = [];
+      // ✅ Step 3: Double-Log leads Value Before Length
+      console.log("🐛 Raw leads from DB:", leads);
       console.log("📊 Campaign has", leads.length, "leads to process");
       if (leads.length === 0) {
         console.error('❌ No leads found for campaign:', campaignId);
