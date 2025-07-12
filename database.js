@@ -638,33 +638,20 @@ const updateCampaignLeadStatus = async (campaignId, leadId, status, errorMessage
   }
 };
 
-// Get available leads for campaign selection
-const getAvailableLeads = async (limit = 100, offset = 0) => {
+// Get available leads for a specific campaign using campaign_leads join and only PENDING status
+const getAvailableLeads = async (campaignId) => {
   const client = await pool.connect();
-  
   try {
     const query = `
-      SELECT 
-        id,
-        lead_id,
-        first_name,
-        last_name,
-        email,
-        company,
-        job_title,
-        industry,
-        created_at
-      FROM leads 
-      WHERE email IS NOT NULL AND email != ''
-      ORDER BY created_at DESC 
-      LIMIT $1 OFFSET $2
+      SELECT leads.*
+      FROM campaign_leads
+      JOIN leads ON campaign_leads.lead_id = leads.id
+      WHERE campaign_leads.campaign_id = $1 AND campaign_leads.status = 'PENDING'
     `;
-    
-    const result = await client.query(query, [limit, offset]);
-    return result.rows;
-    
+    const result = await client.query(query, [campaignId]);
+    return result.rows || [];
   } catch (error) {
-    console.error('Error fetching available leads:', error);
+    console.error('Error fetching available leads for campaign:', error);
     throw error;
   } finally {
     client.release();
