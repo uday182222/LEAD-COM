@@ -958,7 +958,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     
     if (templateInfo.type === 'email') {
       // Send emails to all leads
-      console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
+      console.log(`📧 Sending emails to ${campaign.leadCount} leads...`);
       let sentCount = 0;
       let failedCount = 0;
       // Fetch leads for campaign
@@ -973,11 +973,28 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         throw new Error('No leads available for this campaign.');
       }
       for (const lead of leads) {
+        // 2.1 Subject fallback and validation
+        const subject = campaign.subject || templateInfo.subject;
+        if (!subject) {
+          console.warn("❌ Skipping lead: missing subject", { leadId: lead.id });
+          continue;
+        }
+        const html = templateInfo.html_template;
+        if (!html || !html.trim().startsWith('<')) {
+          console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
+          continue;
+        }
+        // 2.2 Test mode override
+        let to = lead.email;
+        if (campaign.test_mode) {
+          console.log("🧪 Test mode ON — overriding", lead.email, "→ team@motionfalcon.com");
+          to = 'team@motionfalcon.com';
+        }
         const emailTemplate = {
           from: "team@motionfalcon.com",
-          to: lead.email,
-          subject: campaign.subject,
-          html: templateInfo.html_template,
+          to,
+          subject,
+          html,
           templatePath: null,
           variables: {
             first_name: lead.first_name,
@@ -1016,6 +1033,15 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
         }
         await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
+      }
+      // 3.3 After the loop, check if any emails were sent
+      if (sentCount === 0) {
+        console.warn(`⚠️ Campaign ${campaignId} skipped all leads — marking as COMPLETED.`);
+        await db.updateCampaignStatus(campaignId, 'COMPLETED');
+        return res.status(200).json({
+          success: true,
+          message: 'Campaign completed — no valid emails were sent.'
+        });
       }
       console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
     } else {
