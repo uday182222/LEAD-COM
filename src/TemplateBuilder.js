@@ -216,6 +216,8 @@ useEffect(() => {
 const [presetVars, setPresetVars] = useState({});
 const [clonedFields, setClonedFields] = useState(null);
 const [fields, setFields] = useState([]);
+// Add subject state
+const [subject, setSubject] = useState('');
 
 // When a preset is selected, initialize presetVars with default or empty values for its fields
 const handlePresetSelect = (preset) => {
@@ -227,6 +229,7 @@ const openTemplateModal = (template, isClone = false) => {
   setCurrentTemplate(isClone ? null : template);
   setTemplateName(template?.name ? (isClone ? template.name + ' (Copy)' : template.name) : '');
   setHtmlTemplate(template?.htmlTemplate || template?.html_template || '');
+  setSubject(template?.subject || '');
   let templateFields = template?.fields;
   if (!templateFields || templateFields.length === 0) {
     templateFields = extractVariablesFromHTML(template?.htmlTemplate || template?.html_template || '');
@@ -330,6 +333,7 @@ const saveTemplate = async () => {
       name: templateName,
       html_template: htmlTemplate,
       fields: fields,
+      subject: subject,
     };
     let response, data, newTemplate;
     if (currentTemplate && isDbTemplate(currentTemplate)) {
@@ -363,6 +367,7 @@ const saveTemplate = async () => {
       return;
     }
     setTemplateName('');
+    setSubject('');
     setShowTemplateModal(false);
     setCurrentTemplate(null);
     setClonedFields(null); // Reset after save
@@ -683,6 +688,36 @@ return (
               }}
             />
           </div>
+          {/* Add subject input field */}
+          <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+            <label style={{ 
+              display: 'block',
+              color: '#ffffff',
+              fontSize: '14px',
+              fontWeight: 'bold',
+              marginBottom: '8px'
+            }} htmlFor="subject">
+              Subject:
+            </label>
+            <input
+              id="subject"
+              name="subject"
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Enter email subject..."
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #64ffda',
+                marginBottom: '16px',
+                fontSize: '15px',
+                background: '#222',
+                color: '#fff'
+              }}
+            />
+          </div>
           <button
             onClick={saveTemplate}
             style={{
@@ -767,6 +802,11 @@ return (
                     }}>
                       {template.type === 'html' ? '🌐' : '📧'} {template.type === 'html' ? 'HTML' : 'Email'} • {template.fields.length} variables
                     </div>
+                    {template.subject && (
+                      <div style={{ fontSize: '12px', color: '#64ffda', marginTop: '2px' }}>
+                        Subject: {template.subject}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {/* Only show Clone for presets (non-numeric IDs) */}
