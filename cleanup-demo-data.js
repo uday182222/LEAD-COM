@@ -1,4 +1,4 @@
-const { Pool } = require('pg');
+import { Pool } from 'pg';
 
 const pool = new Pool({
   user: process.env.DB_USER || 'udaytomar',
@@ -51,7 +51,7 @@ const cleanupDemoData = async () => {
 };
 
 // Run cleanup if this file is executed directly
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   console.log('⚠️  WARNING: This will delete ALL existing leads and campaigns!');
   console.log('📋 Summary of what will be deleted:');
   console.log('   - All leads in the database');
@@ -73,4 +73,4 @@ if (require.main === module) {
   }, 3000);
 }
 
-module.exports = { cleanupDemoData }; 
+export { cleanupDemoData }; 

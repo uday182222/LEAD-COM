@@ -1,5 +1,6 @@
-require('dotenv').config();
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+import dotenv from 'dotenv';
+dotenv.config();
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 const ses = new SESClient({
   region: process.env.REGION,

@@ -1,5 +1,5 @@
 // Email Configuration using Amazon SES API
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
+import { SESClient, SendEmailCommand, GetAccountAttributesCommand } from '@aws-sdk/client-ses';
 
 // Environment variables for Amazon SES
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -168,7 +168,6 @@ const testEmailConnection = async () => {
     }
 
     // Test by getting SES account attributes
-    const { GetAccountAttributesCommand } = require('@aws-sdk/client-ses');
     const command = new GetAccountAttributesCommand({});
     await sesClient.send(command);
     
@@ -184,8 +183,7 @@ const testEmailConnection = async () => {
 // Initialize on module load
 initializeEmailTransporter();
 
-module.exports = {
-  emailTransporter: sesClient, // Keep for backward compatibility
+export {
   sesClient,
   sendEmail,
   sendHtmlEmail,
