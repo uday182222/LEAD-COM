@@ -940,82 +940,58 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       throw new Error('No valid HTML template source found (neither html_template nor file_name)');
     }
 
-    const isHTMLValid = templateInfo.html_template && templateInfo.html_template.trim().length > 0;
-    const emailTemplate = {
-      from: "team@motionfalcon.com",
-      to: lead.email,
-      subject: campaign.subject,
-      html: isHTMLValid ? templateInfo.html_template : null,
-      templatePath: isHTMLValid ? null : `templates/${templateInfo.file_name}`,
-      variables: {
-        first_name: lead.first_name,
-        last_name: lead.last_name,
-        company: lead.company,
-        email: lead.email,
-        ...(campaign.variables || {})
-      },
-    };
-
-    console.log('📨 Final emailTemplate:', emailTemplate);
-    
     // Update campaign status to RUNNING
     const updatedCampaign = await db.updateCampaignStatus(campaignId, 'RUNNING');
     
     console.log(`🚀 Campaign "${campaign.name}" (ID: ${campaignId}) started successfully`);
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
     
-    if (emailTemplate.type === 'email') {
+    if (templateInfo.type === 'email') {
       // Send emails to all leads
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
       let sentCount = 0;
       let failedCount = 0;
       for (const lead of campaign.leads) {
-        try {
-          // Build emailTemplate for this lead
-          const emailTemplate = {
-            from: "team@motionfalcon.com",
-            to: lead.email,
-            subject: campaign.subject,
-            html: templateInfo.html_template || null,
-            templatePath: templateInfo.html_template ? null : `templates/${templateInfo.file_name}`,
-            variables: {
-              first_name: lead.first_name,
-              last_name: lead.last_name,
-              company: lead.company,
-              email: lead.email,
-              ...(campaign.variables || {})
-            },
-          };
-          console.log("👉 [Before sendHTMLEmail] What does the email template look like?", {
-            subject: emailTemplate.subject,
-            from: emailTemplate.from,
-            to: lead.email,
-            htmlLength: emailTemplate.html?.length || 0,
-            templatePath: emailTemplate.templatePath,
-          });
-          const result = await emailService.sendHTMLEmail(emailTemplate);
-          if (result.success) {
-            console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
-            sentCount++;
-            await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-            // Delete the lead from database after successful email delivery
-            try {
-              await db.deleteLeadAfterEmail(lead.id);
-              console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
-            } catch (deleteError) {
-              console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
-            }
-          } else {
-            console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
-            failedCount++;
-            await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
+        const isHTMLValid = !!templateInfo.html_template && templateInfo.html_template.trim().length > 0;
+        const emailTemplate = {
+          from: "team@motionfalcon.com",
+          to: lead.email,
+          subject: campaign.subject,
+          html: isHTMLValid ? templateInfo.html_template : null,
+          templatePath: isHTMLValid ? null : `templates/${templateInfo.file_name}`,
+          variables: {
+            first_name: lead.first_name,
+            last_name: lead.last_name,
+            company: lead.company,
+            email: lead.email,
+            ...(campaign.variables || {})
+          },
+        };
+        console.log("👉 [Before sendHTMLEmail] What does the email template look like?", {
+          subject: emailTemplate.subject,
+          from: emailTemplate.from,
+          to: lead.email,
+          htmlLength: emailTemplate.html?.length || 0,
+          templatePath: emailTemplate.templatePath,
+        });
+        const result = await emailService.sendHTMLEmail(emailTemplate);
+        if (result.success) {
+          console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
+          sentCount++;
+          await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
+          // Delete the lead from database after successful email delivery
+          try {
+            await db.deleteLeadAfterEmail(lead.id);
+            console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
+          } catch (deleteError) {
+            console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
           }
-          await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
-        } catch (error) {
-          console.error(`❌ Error processing lead ${lead.id}:`, error.message);
+        } else {
+          console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
           failedCount++;
-          await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', error.message);
+          await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
         }
+        await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
       }
       console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
     } else {
