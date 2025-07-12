@@ -940,11 +940,20 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       throw new Error('No valid HTML template source found (neither html_template nor file_name)');
     }
 
+    const isHTMLValid = templateInfo.html_template && templateInfo.html_template.trim().length > 0;
     const emailTemplate = {
-      type: 'email',
-      subject: templateInfo.subject || `Hello from ${campaign.name}`,
-      html,
-      templatePath
+      from: "team@motionfalcon.com",
+      to: lead.email,
+      subject: campaign.subject,
+      html: isHTMLValid ? templateInfo.html_template : null,
+      templatePath: isHTMLValid ? null : `templates/${templateInfo.file_name}`,
+      variables: {
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        company: lead.company,
+        email: lead.email,
+        ...(campaign.variables || {})
+      },
     };
 
     console.log('📨 Final emailTemplate:', emailTemplate);
