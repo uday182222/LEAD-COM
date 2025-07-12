@@ -918,51 +918,21 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     
     console.log(`🚀 Campaign "${campaign.name}" (ID: ${campaignId}) started successfully`);
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
-    let emailTemplate = null;
-    let templatePath = null;
-    let useHtmlFromDb = false;
-    if (templateInfo) {
-      if (templateInfo.file_name) {
-        if (templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
-          console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
-          throw new Error('Template file_name must be a valid .html filename');
-        }
-        templatePath = `templates/${templateInfo.file_name}`;
-        emailTemplate = {
-          type: 'email',
-          subject: templateInfo.subject || `Hello from ${campaign.name}`,
-          templatePath
-        };
-      } else if (templateInfo.html_template) {
-        useHtmlFromDb = true;
-        emailTemplate = {
-          type: 'email',
-          subject: templateInfo.subject || `Hello from ${campaign.name}`,
-          html: templateInfo.html_template
-        };
-      } else {
-        console.error(`❌ No valid template source found for campaign ID: ${campaign.id}`);
-        throw new Error('No valid template source found. Cannot proceed with email campaign.');
-      }
-    } else {
-      console.error(`❌ No templateInfo found for campaign ID: ${campaign.id}`);
-      throw new Error('Template info not found. Cannot proceed with email campaign.');
-    }
-    
-    let emailHTML = '';
+    let emailTemplate = {
+      type: 'email',
+      subject: templateInfo.subject || `Hello from ${campaign.name}`,
+    };
     if (templateInfo.html_template && templateInfo.html_template.trim().startsWith('<!DOCTYPE html')) {
-      console.log('✅ Using HTML from database');
-      emailHTML = templateInfo.html_template;
+      emailTemplate.html = templateInfo.html_template;
+      console.log('✅ Using HTML from database for campaign email');
     } else {
-      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
+      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<')) {
         console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
-        throw new Error('Template file_name must be a valid .html filename');
+        throw new Error(`Invalid template file_name: ${templateInfo.file_name}`);
       }
-      const templatePath = path.join('templates', templateInfo.file_name);
-      console.log(`📄 Loading template from: ${templatePath}`);
-      emailHTML = await fsp.readFile(templatePath, 'utf8');
+      emailTemplate.templatePath = path.join('templates', templateInfo.file_name);
+      console.log(`📄 Using template file: ${emailTemplate.templatePath}`);
     }
-    
     if (emailTemplate.type === 'email') {
       // Send emails to all leads
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
@@ -987,18 +957,19 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             cta_text: template?.cta_text || 'Learn More',
             unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
           };
-          await emailService.sendHTMLEmail(
+          const result = await emailService.sendHTMLEmail(
             lead.email,
-            templateInfo.subject || `Hello from ${campaign.name}`,
-            emailHTML,
+            emailTemplate.subject,
+            {
+              html: emailTemplate.html,
+              templatePath: emailTemplate.templatePath
+            },
             templateData
           );
-          
           if (result.success) {
             console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
             sentCount++;
             await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-            
             // Delete the lead from database after successful email delivery
             try {
               await db.deleteLeadAfterEmail(lead.id);
@@ -1011,7 +982,6 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             failedCount++;
             await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
           }
-          
           await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
         } catch (error) {
           console.error(`❌ Error processing lead ${lead.id}:`, error.message);

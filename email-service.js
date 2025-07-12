@@ -136,43 +136,36 @@ const loadHTMLTemplate = async (templatePath) => {
 };
 
 /**
- * Send HTML email using external template
+ * Send HTML email using external template or raw HTML
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
- * @param {string} templatePath - Path to HTML template file
+ * @param {Object} options - { html, templatePath }
  * @param {Object} templateData - Data for template variables
  * @returns {Promise<Object>} Result object with success status and details
  */
-const sendHTMLEmail = async (to, subject, templatePath, templateData = {}) => {
+const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
   try {
-    // Check if SES client is initialized
     if (!sesClient) {
       throw new Error('SES API client is not initialized. Please check your AWS credentials.');
     }
-
-    // Validate required parameters
-    if (!to || !subject || !templatePath) {
-      throw new Error('Recipient email, subject, and template path are required');
+    if (!to || !subject) {
+      throw new Error('Recipient email and subject are required');
     }
-
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(to)) {
       throw new Error(`Invalid email format: ${to}`);
     }
-
-    console.log(`📧 Preparing HTML email to: ${to}`);
-    console.log(`📝 Subject: ${subject}`);
-    console.log(`📄 Template: ${templatePath}`);
-    console.log(`📊 Template data:`, templateData);
-
-    // Load HTML template
-    const htmlContent = await loadHTMLTemplate(templatePath);
-
-    // Replace template variables
+    let htmlContent;
+    if (options.html) {
+      htmlContent = options.html;
+      console.log('✅ Using raw HTML from database for email');
+    } else if (options.templatePath) {
+      htmlContent = await loadHTMLTemplate(options.templatePath);
+      console.log(`📄 Loaded HTML template from file: ${options.templatePath}`);
+    } else {
+      throw new Error('No HTML source provided: options.html or options.templatePath required');
+    }
     const processedHTML = replaceTemplateVariables(htmlContent, templateData);
-
-    // Prepare email parameters for SES API
     const params = {
       Source: EMAIL_FROM,
       Destination: {
@@ -188,35 +181,28 @@ const sendHTMLEmail = async (to, subject, templatePath, templateData = {}) => {
             Data: processedHTML,
             Charset: 'UTF-8',
           },
-          // Optional: Add text version for email clients that don't support HTML
           Text: {
-            Data: processedHTML.replace(/<[^>]*>/g, ''), // Strip HTML tags for text version
+            Data: processedHTML.replace(/<[^>]*>/g, ''),
             Charset: 'UTF-8',
           },
         },
       },
     };
-
-    // Send email using SES API
     const command = new SendEmailCommand(params);
     const result = await sesClient.send(command);
-    
     console.log(`✅ HTML email sent successfully!`);
     console.log(`📧 Message ID: ${result.MessageId}`);
-    
     return {
       success: true,
       messageId: result.MessageId,
       to: to,
       from: EMAIL_FROM,
-      templatePath: templatePath,
+      htmlSource: options.html ? 'db' : 'file',
+      templatePath: options.templatePath,
       templateData: templateData
     };
-
   } catch (error) {
     console.error('❌ Error sending HTML email:', error.message);
-    
-    // Handle specific SES errors
     let errorCode = 'UNKNOWN_ERROR';
     if (error.name === 'MessageRejected') {
       errorCode = 'MESSAGE_REJECTED';
@@ -225,14 +211,14 @@ const sendHTMLEmail = async (to, subject, templatePath, templateData = {}) => {
     } else if (error.name === 'ConfigurationSetDoesNotExistException') {
       errorCode = 'CONFIGURATION_SET_NOT_FOUND';
     }
-    
     return {
       success: false,
       error: error.message,
       code: errorCode,
       to: to,
       from: EMAIL_FROM,
-      templatePath: templatePath,
+      htmlSource: options.html ? 'db' : 'file',
+      templatePath: options.templatePath,
       templateData: templateData
     };
   }
