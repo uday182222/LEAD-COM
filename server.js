@@ -920,17 +920,30 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     console.log(`📊 Campaign has ${campaign.leadCount} leads to process`);
     let emailTemplate = null;
     let templatePath = null;
+    let useHtmlFromDb = false;
     if (templateInfo) {
-      if (!templateInfo.file_name || templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
-        console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
-        throw new Error('Template file_name must be a valid .html filename');
+      if (templateInfo.file_name) {
+        if (templateInfo.file_name.length > 100 || templateInfo.file_name.includes('<html')) {
+          console.error(`❌ Invalid template file_name: ${templateInfo.file_name}`);
+          throw new Error('Template file_name must be a valid .html filename');
+        }
+        templatePath = `templates/${templateInfo.file_name}`;
+        emailTemplate = {
+          type: 'email',
+          subject: templateInfo.subject || `Hello from ${campaign.name}`,
+          templatePath
+        };
+      } else if (templateInfo.html_template) {
+        useHtmlFromDb = true;
+        emailTemplate = {
+          type: 'email',
+          subject: templateInfo.subject || `Hello from ${campaign.name}`,
+          html: templateInfo.html_template
+        };
+      } else {
+        console.error(`❌ No valid template source found for campaign ID: ${campaign.id}`);
+        throw new Error('No valid template source found. Cannot proceed with email campaign.');
       }
-      templatePath = `templates/${templateInfo.file_name}`;
-      emailTemplate = {
-        type: 'email',
-        subject: templateInfo.subject || `Hello from ${campaign.name}`,
-        templatePath
-      };
     } else {
       console.error(`❌ No templateInfo found for campaign ID: ${campaign.id}`);
       throw new Error('Template info not found. Cannot proceed with email campaign.');
@@ -948,13 +961,9 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             failedCount++;
             continue;
           }
-          
           let result;
-          
-          if (templatePath) {
+          if (templatePath && !useHtmlFromDb) {
             // Use sendHTMLEmail with template file
-            
-            // Prepare template data from lead fields
             const templateData = {
               first_name: lead.first_name || '',
               last_name: lead.last_name || '',
@@ -966,13 +975,25 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
               cta_text: template?.cta_text || 'Learn More',
               unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
             };
-            
             result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
+          } else if (useHtmlFromDb && emailTemplate.html) {
+            // Use HTML from DB
+            const templateData = {
+              first_name: lead.first_name || '',
+              last_name: lead.last_name || '',
+              email: lead.email || '',
+              company: lead.company || '',
+              company_name: lead.company || '',
+              custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
+              cta_link: template?.cta_link || 'https://example.com',
+              cta_text: template?.cta_text || 'Learn More',
+              unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
+            };
+            result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, null, templateData, emailTemplate.html);
           } else {
             // Use legacy text email approach
             let subject = emailTemplate.subject;
             let body = emailTemplate.body;
-            
             if (emailTemplate.fields && Array.isArray(emailTemplate.fields)) {
               emailTemplate.fields.forEach(field => {
                 const placeholder = `{${field}}`;
@@ -981,7 +1002,6 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
                 body = body.replace(new RegExp(placeholder, 'g'), value);
               });
             }
-            
             result = await mailer.sendEmail(lead.email, subject, body);
           }
           
