@@ -770,14 +770,18 @@ const getCompletedLeadsCount = async () => {
 // Create a new template
 const createTemplate = async (templateData) => {
   const client = await pool.connect();
-  
   try {
     const query = `
-      INSERT INTO email_templates (name, html_template, fields)
-      VALUES ($1, $2, $3)
-      RETURNING id, name, html_template, fields, created_at, updated_at
+      INSERT INTO email_templates (name, html_template, fields, type)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, name, html_template, fields, type, created_at, updated_at
     `;
-    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || [])];
+    const values = [
+      templateData.name,
+      templateData.html_template,
+      JSON.stringify(templateData.fields || []),
+      templateData.type || 'email'
+    ];
     const result = await client.query(query, values);
     return result.rows[0];
   } catch (error) {
@@ -811,10 +815,9 @@ const getTemplates = async () => {
 // Get template by ID
 const getTemplateById = async (templateId) => {
   const client = await pool.connect();
-  
   try {
     const query = `
-      SELECT id, name, html_template, fields, created_at, updated_at
+      SELECT id, name, html_template, fields, type, created_at, updated_at
       FROM email_templates
       WHERE id = $1
     `;

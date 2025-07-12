@@ -913,6 +913,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       }
     }
     
+    // Log and validate template type
+    console.log("📦 Template type:", templateInfo.type);
+    if (!templateInfo?.type) console.warn("⚠️ Template type is missing");
+
     // After fetching templateInfo from DB
     console.log("📄 [DB Fetch] What is the template content?", {
       file_name: templateInfo.file_name,
@@ -951,10 +955,12 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
       let sentCount = 0;
       let failedCount = 0;
+      // Fetch leads for campaign
       console.log("📌 campaignId passed to getAvailableLeads:", campaignId);
-      const leads = await db.getAvailableLeads(campaignId);
-      console.log("📊 Campaign has", Array.isArray(leads) ? leads.length : 0, "leads to process");
-      if (!leads || !Array.isArray(leads) || leads.length === 0) {
+      let leads = await db.getAvailableLeads(campaignId);
+      if (!Array.isArray(leads)) leads = [];
+      console.log("📊 Campaign has", leads.length, "leads to process");
+      if (leads.length === 0) {
         console.error('❌ No leads found for campaign:', campaignId);
         throw new Error('No leads available for this campaign.');
       }
