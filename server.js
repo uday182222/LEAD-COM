@@ -17,7 +17,6 @@ import fs from 'fs';
 import fsp from 'fs/promises';
 import pkg from '@aws-sdk/client-ses';
 const { SESClient, GetAccountAttributesCommand } = pkg;
-import { sendHTMLEmail } from './email-service.js';
 import emailService from './email-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -983,7 +982,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
                 unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
               };
               
-              result = await sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
+              result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
             } else {
               // Use legacy text email approach
               let subject = emailTemplate.subject;
