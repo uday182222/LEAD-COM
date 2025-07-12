@@ -932,24 +932,19 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       let templatePath = null;
       
       if (templateInfo) {
-        // Use HTML template from database
-        templatePath = `templates/${templateInfo.file_name}`;
+        if (!templateInfo.file_name) {
+          console.error(`❌ Missing template file_name for campaign ID: ${campaign.id}`);
+          throw new Error('Template file is missing in templateInfo. Cannot build email template path.');
+        }
+        const templatePath = `templates/${templateInfo.file_name}`;
         emailTemplate = {
           type: 'email',
-          subject: template?.subject || `Hello from ${campaign.name}`,
-          templatePath: templatePath
+          subject: templateInfo.subject || `Hello from ${campaign.name}`,
+          templatePath
         };
-      } else if (template && template.type === 'email') {
-        // Use provided template (legacy support)
-        emailTemplate = template;
       } else {
-        // Create default email template
-        emailTemplate = {
-          type: 'email',
-          subject: `Hello from ${campaign.name}`,
-          body: `Hi {first_name},\n\nThank you for your interest in our services. We'd love to connect with you and discuss how we can help.\n\nBest regards,\nYour Team`,
-          fields: ['first_name']
-        };
+        console.error(`❌ No templateInfo found for campaign ID: ${campaign.id}`);
+        throw new Error('Template info not found. Cannot proceed with email campaign.');
       }
       
       if (emailTemplate.type === 'email') {
