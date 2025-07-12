@@ -949,6 +949,15 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       throw new Error('Template info not found. Cannot proceed with email campaign.');
     }
     
+    let emailHTML = '';
+    if (templateInfo.html_template) {
+      emailHTML = templateInfo.html_template;
+    } else if (templatePath) {
+      emailHTML = await fsp.readFile(templatePath, 'utf8');
+    } else {
+      throw new Error('No valid email template source found.');
+    }
+    
     if (emailTemplate.type === 'email') {
       // Send emails to all leads
       console.log(`📧 Sending emails to ${campaign.leads.length} leads...`);
@@ -962,48 +971,19 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
             continue;
           }
           let result;
-          if (templatePath && !useHtmlFromDb) {
-            // Use sendHTMLEmail with template file
-            const templateData = {
-              first_name: lead.first_name || '',
-              last_name: lead.last_name || '',
-              email: lead.email || '',
-              company: lead.company || '',
-              company_name: lead.company || '',
-              custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
-              cta_link: template?.cta_link || 'https://example.com',
-              cta_text: template?.cta_text || 'Learn More',
-              unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
-            };
-            result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, templatePath, templateData);
-          } else if (useHtmlFromDb && emailTemplate.html) {
-            // Use HTML from DB
-            const templateData = {
-              first_name: lead.first_name || '',
-              last_name: lead.last_name || '',
-              email: lead.email || '',
-              company: lead.company || '',
-              company_name: lead.company || '',
-              custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
-              cta_link: template?.cta_link || 'https://example.com',
-              cta_text: template?.cta_text || 'Learn More',
-              unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
-            };
-            result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, null, templateData, emailTemplate.html);
-          } else {
-            // Use legacy text email approach
-            let subject = emailTemplate.subject;
-            let body = emailTemplate.body;
-            if (emailTemplate.fields && Array.isArray(emailTemplate.fields)) {
-              emailTemplate.fields.forEach(field => {
-                const placeholder = `{${field}}`;
-                const value = lead[field] || '';
-                subject = subject.replace(new RegExp(placeholder, 'g'), value);
-                body = body.replace(new RegExp(placeholder, 'g'), value);
-              });
-            }
-            result = await mailer.sendEmail(lead.email, subject, body);
-          }
+          // Prepare template data from lead fields
+          const templateData = {
+            first_name: lead.first_name || '',
+            last_name: lead.last_name || '',
+            email: lead.email || '',
+            company: lead.company || '',
+            company_name: lead.company || '',
+            custom_message: template?.custom_message || 'We\'d love to connect with you and discuss how we can help.',
+            cta_link: template?.cta_link || 'https://example.com',
+            cta_text: template?.cta_text || 'Learn More',
+            unsubscribe_link: template?.unsubscribe_link || 'https://example.com/unsubscribe'
+          };
+          result = await emailService.sendHTMLEmail(lead.email, emailTemplate.subject, null, templateData, emailHTML);
           
           if (result.success) {
             console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
