@@ -1637,11 +1637,14 @@ app.post('/api/email-templates', async (req, res) => {
   console.log("Received template data:", req.body);
   console.log("Received html_template:", req.body.html_template);
   try {
-    const { name, html_template, fields } = req.body;
+    const { name, html_template, fields, subject, type } = req.body;
     if (!name || !html_template) {
       return res.status(400).json({ success: false, error: 'Name and html_template are required' });
     }
-    const template = await db.createEmailTemplate({ name, html_template, fields });
+    if (!subject || subject.trim() === '') {
+      return res.status(400).json({ error: 'Subject is required' });
+    }
+    const template = await db.createEmailTemplate({ name, html_template, fields, subject, type });
     res.status(201).json({ success: true, template });
   } catch (error) {
     console.error('Error creating email template:', error);
@@ -1651,11 +1654,14 @@ app.post('/api/email-templates', async (req, res) => {
 
 app.put('/api/email-templates/:id', async (req, res) => {
   try {
-    const { name, html_template, fields } = req.body;
+    const { name, html_template, fields, subject, type } = req.body;
     if (!name || !html_template) {
       return res.status(400).json({ success: false, error: 'Name and html_template are required' });
     }
-    const template = await db.updateEmailTemplate(req.params.id, { name, html_template, fields });
+    if (!subject || subject.trim() === '') {
+      return res.status(400).json({ error: 'Subject is required' });
+    }
+    const template = await db.updateEmailTemplate(req.params.id, { name, html_template, fields, subject, type });
     if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
     res.json({ success: true, template });
   } catch (error) {
