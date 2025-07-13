@@ -441,7 +441,12 @@ const createNewTemplate = () => {
 
 // Add this function to clone a preset template
 const cloneTemplate = (template) => {
-  openTemplateModal(template, true);
+  // Ensure subject is copied, with fallback
+  const cloned = {
+    ...template,
+    subject: template.subject || 'Your Email Subject',
+  };
+  openTemplateModal(cloned, true);
 };
 
 const getFieldDisplayName = (field) => {
