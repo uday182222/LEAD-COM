@@ -974,10 +974,9 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       }
       for (const lead of leads) {
         // 2.1 Subject fallback and validation
-        const subject = campaign.subject || templateInfo.subject;
-        if (!subject || subject === 'No Subject') {
-          console.warn("❌ Skipping lead: missing subject", { leadId: lead.id });
-          continue;
+        let subject = (campaign.subject || templateInfo.subject || '').trim();
+        if (!subject || subject.toLowerCase() === 'no subject') {
+          subject = 'Untitled Subject'; // fallback protection
         }
         const html = templateInfo.html_template;
         if (!html || !html.trim().startsWith('<')) {
@@ -1704,6 +1703,7 @@ app.post('/api/email-templates/clone/:id', async (req, res) => {
       fields: Array.isArray(original.fields) ? original.fields : [],
       subject: original.subject?.trim() || 'Untitled Subject',
       type: original.type || 'email',
+      original_template_id: original.id, // ✅ NEW LINE
     };
     const result = await db.createEmailTemplate(newTemplate);
     res.json(result);
