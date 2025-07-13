@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 const TemplateBuilder = ({ selectedFields, onTemplateComplete }) => {
+  const { campaignId } = useParams();
   const [templates, setTemplates] = useState([]);
   const [currentTemplate, setCurrentTemplate] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -548,7 +549,7 @@ const filteredTemplates = useMemo(() => {
   });
 }, [allTemplates, filter]);
 
-const startCampaign = async (campaignId) => {
+const startCampaign = async () => {
   const templateVariables = {
     headline,
     subheadline,
@@ -556,7 +557,8 @@ const startCampaign = async (campaignId) => {
     cta_text: ctaText,
     cta_link: ctaLink
   };
-  console.log("📤 Sending campaign with templateVariables:", templateVariables);
+  console.log("🪪 Using campaignId:", campaignId);
+  console.log("🌐 Fetch URL:", `${API_URL}/api/campaigns/${campaignId}/start`);
   try {
     const response = await fetch(`${API_URL}/api/campaigns/${campaignId}/start`, {
       method: 'POST',
