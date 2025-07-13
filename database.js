@@ -905,12 +905,15 @@ const clearAllPendingLeads = async () => {
 const createEmailTemplate = async (template) => {
   const client = await pool.connect();
   try {
+    const subject = (!template.subject || template.subject === 'No Subject')
+      ? 'Untitled Subject'
+      : template.subject;
     const query = `
       INSERT INTO email_templates (name, html_template, type, subject)
       VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
-    const values = [template.name, template.html_template, template.type || 'email', template.subject || null];
+    const values = [template.name, template.html_template, template.type || 'email', subject];
     const result = await client.query(query, values);
     return result.rows[0];
   } finally {
