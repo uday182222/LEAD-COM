@@ -7,6 +7,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
   const [availableLeads, setAvailableLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [templateSubject, setTemplateSubject] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -53,6 +54,25 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
       fetchAvailableLeads();
     }
   }, [uploadedLeads]);
+
+  useEffect(() => {
+    if (selectedHtmlTemplate) {
+      const selectedTemplate = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
+      if (selectedTemplate && selectedTemplate.id) {
+        fetch(`${API_URL}/api/email-templates/${selectedTemplate.id}`)
+          .then(res => res.json())
+          .then(data => {
+            setTemplateSubject(data.template?.subject || 'No Subject');
+          })
+          .catch(err => {
+            console.error('Failed to fetch template subject:', err);
+            setTemplateSubject('');
+          });
+      } else {
+        setTemplateSubject('');
+      }
+    }
+  }, [selectedHtmlTemplate, htmlTemplates]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -329,7 +349,11 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                   </option>
                 ))}
               </select>
-
+              {templateSubject && (
+                <div style={{ marginTop: '12px', color: '#64ffda', fontWeight: 'bold' }}>
+                  Subject: {templateSubject}
+                </div>
+              )}
               {errors.selectedHtmlTemplate && (
                 <p style={{ 
                   marginTop: '8px',
