@@ -229,7 +229,7 @@ const openTemplateModal = (template, isClone = false) => {
   setCurrentTemplate(isClone ? null : template);
   setTemplateName(template?.name ? (isClone ? template.name + ' (Copy)' : template.name) : '');
   setHtmlTemplate(template?.htmlTemplate || template?.html_template || '');
-  setSubject(template?.subject || '');
+  setSubject((template?.subject && template.subject.trim()) || 'Your Email Subject');
   let templateFields = template?.fields;
   if (!templateFields || templateFields.length === 0) {
     templateFields = extractVariablesFromHTML(template?.htmlTemplate || template?.html_template || '');
@@ -337,7 +337,7 @@ const saveTemplate = async () => {
       name: templateName,
       html_template: htmlTemplate,
       fields: fields,
-      subject: subject,
+      subject: subject.trim(),
     };
     let response, data, newTemplate;
     if (currentTemplate && isDbTemplate(currentTemplate)) {
