@@ -1653,6 +1653,7 @@ app.post('/api/email-templates', async (req, res) => {
 });
 
 app.put('/api/email-templates/:id', async (req, res) => {
+  console.log('📩 [Backend] PUT /api/email-templates/:id payload:', req.body);
   try {
     const { name, html_template, fields, subject, type } = req.body;
     if (!name || !html_template) {

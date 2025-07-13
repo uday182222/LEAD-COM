@@ -338,7 +338,9 @@ const saveTemplate = async () => {
       html_template: htmlTemplate,
       fields: fields,
       subject: subject.trim(),
+      type: 'email',
     };
+    console.log("📝 [Frontend] Saving template with subject:", templateData.subject);
     let response, data, newTemplate;
     if (currentTemplate && isDbTemplate(currentTemplate)) {
       // Update existing template
