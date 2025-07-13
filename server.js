@@ -921,13 +921,18 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (campaign.template_id) {
       templateInfo = await db.getTemplateById(campaign.template_id);
     }
-    // Fallback to master template (ID: 94) if missing or invalid
-    if (!templateInfo || !templateInfo.html_template || templateInfo.html_template.trim().length < 100) {
+    // Check if the template has valid HTML content
+    let isValidTemplate = templateInfo && typeof templateInfo.html_template === 'string' && templateInfo.html_template.includes('<html');
+
+    if (!isValidTemplate) {
       console.warn(`⚠️ Template ${campaign.template_id} is invalid. Using Master Template (ID: 94)`);
       templateInfo = await db.getTemplateById(94);
     }
-    // Throw if even master template is missing or invalid
-    if (!templateInfo || !templateInfo.html_template || templateInfo.html_template.trim().length < 100) {
+
+    // Re-check master template as fallback
+    const isValidFallback = templateInfo && typeof templateInfo.html_template === 'string' && templateInfo.html_template.includes('<html');
+
+    if (!isValidFallback) {
       throw new Error('❌ No valid HTML template found for this campaign or as fallback.');
     }
     // ✅ Step 2: Sanity Log Campaign and Template
