@@ -509,6 +509,28 @@ const handleCloneDbTemplate = async (templateId) => {
   }
 };
 
+// Add handleSendTestEmail function
+const handleSendTestEmail = async (templateId) => {
+  try {
+    const res = await fetch(`${API_URL}/api/email-templates/${templateId}/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: 'team@motionfalcon.com',
+        fields: { first_name: 'Test', company: 'Motion Falcon', cta_link: 'https://motionfalcon.com', cta_text: 'Try Now' }
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert('Test email sent!');
+    } else {
+      alert('Failed to send test email: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  }
+};
+
 return (
   <div style={{ 
     maxWidth: 1400, 
@@ -865,82 +887,139 @@ return (
                     {/* Existing Edit/Delete for DB templates */}
                     {typeof template.id === 'number' && (
                       <>
-                        <button
-                          onClick={() => loadTemplate(template)}
-                          style={{
-                            padding: '6px 12px',
-                            background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
-                            color: '#1a1a2e',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = 'none';
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleCloneDbTemplate(template.id)}
-                          disabled={cloningTemplateId === template.id}
-                          style={{
-                            padding: '6px 12px',
-                            background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
-                            color: '#1a1a2e',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: cloningTemplateId === template.id ? 'not-allowed' : 'pointer',
-                            opacity: cloningTemplateId === template.id ? 0.6 : 1,
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          {cloningTemplateId === template.id ? 'Cloning...' : 'Clone'}
-                        </button>
-                        <button
-                          onClick={() => deleteTemplate(template.id)}
-                          style={{
-                            padding: '6px 12px',
-                            background: deletingTemplateId === template.id ? 'rgba(220, 53, 69, 1)' : 'rgba(220, 53, 69, 0.8)',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (deletingTemplateId === template.id) {
-                              e.target.style.background = 'rgba(220, 53, 69, 1)';
-                              e.target.style.transform = 'translateY(-1px)';
-                            } else {
-                              e.target.style.background = 'rgba(220, 53, 69, 0.8)';
-                              e.target.style.transform = 'translateY(0)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (deletingTemplateId === template.id) {
-                              e.target.style.background = 'rgba(220, 53, 69, 1)';
-                              e.target.style.transform = 'translateY(0)';
-                            } else {
-                              e.target.style.background = 'rgba(220, 53, 69, 0.8)';
-                              e.target.style.transform = 'translateY(0)';
-                            }
-                          }}
-                        >
-                          {deletingTemplateId === template.id ? 'Deleting...' : 'Delete'}
-                        </button>
+                        {template.is_system_template ? (
+                          <>
+                            <button
+                              onClick={() => handleCloneDbTemplate(template.id)}
+                              disabled={cloningTemplateId === template.id}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+                                color: '#1a1a2e',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: cloningTemplateId === template.id ? 'not-allowed' : 'pointer',
+                                opacity: cloningTemplateId === template.id ? 0.6 : 1,
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {cloningTemplateId === template.id ? 'Cloning...' : 'Clone'}
+                            </button>
+                            <button
+                              onClick={() => handleSendTestEmail(template.id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
+                                color: '#1a1a2e',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              Send Test Email
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => loadTemplate(template)}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
+                                color: '#1a1a2e',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-1px)';
+                                e.target.style.boxShadow = '0 4px 8px rgba(100, 255, 218, 0.3)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = 'none';
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleCloneDbTemplate(template.id)}
+                              disabled={cloningTemplateId === template.id}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+                                color: '#1a1a2e',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: cloningTemplateId === template.id ? 'not-allowed' : 'pointer',
+                                opacity: cloningTemplateId === template.id ? 0.6 : 1,
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {cloningTemplateId === template.id ? 'Cloning...' : 'Clone'}
+                            </button>
+                            <button
+                              onClick={() => deleteTemplate(template.id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: deletingTemplateId === template.id ? 'rgba(220, 53, 69, 1)' : 'rgba(220, 53, 69, 0.8)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                if (deletingTemplateId === template.id) {
+                                  e.target.style.background = 'rgba(220, 53, 69, 1)';
+                                  e.target.style.transform = 'translateY(-1px)';
+                                } else {
+                                  e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                                  e.target.style.transform = 'translateY(0)';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (deletingTemplateId === template.id) {
+                                  e.target.style.background = 'rgba(220, 53, 69, 1)';
+                                  e.target.style.transform = 'translateY(0)';
+                                } else {
+                                  e.target.style.background = 'rgba(220, 53, 69, 0.8)';
+                                  e.target.style.transform = 'translateY(0)';
+                                }
+                              }}
+                            >
+                              {deletingTemplateId === template.id ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                              onClick={() => handleSendTestEmail(template.id)}
+                              style={{
+                                padding: '6px 12px',
+                                background: 'linear-gradient(135deg, #4cd8b2, #64ffda)',
+                                color: '#1a1a2e',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              Send Test Email
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

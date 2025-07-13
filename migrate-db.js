@@ -100,6 +100,17 @@ async function migrateDatabase() {
       console.log('ℹ️ template_subject_snapshot column already exists');
     }
 
+    // 7. Add is_system_template column to email_templates if not exist
+    const colSystemCheck = await client.query(`
+      SELECT column_name FROM information_schema.columns WHERE table_name = 'email_templates' AND column_name = 'is_system_template'
+    `);
+    if (colSystemCheck.rows.length === 0) {
+      await client.query(`ALTER TABLE email_templates ADD COLUMN is_system_template BOOLEAN NOT NULL DEFAULT false`);
+      console.log('✅ Added is_system_template column to email_templates');
+    } else {
+      console.log('ℹ️ is_system_template column already exists');
+    }
+
     await client.query('COMMIT');
     console.log('🎉 Migration completed successfully!');
   } catch (error) {

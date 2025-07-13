@@ -1704,6 +1704,30 @@ app.post('/api/email-templates/clone/:id', async (req, res) => {
   }
 });
 
+// Add test email endpoint for templates
+app.post('/api/email-templates/:id/test', async (req, res) => {
+  const { id } = req.params;
+  const { to, fields } = req.body;
+  try {
+    const template = await db.getEmailTemplateById(id);
+    if (!template) return res.status(404).json({ error: 'Template not found' });
+    // Use provided or default test address and fields
+    const testTo = to || 'team@motionfalcon.com';
+    const testFields = fields || { first_name: 'Test', company: 'Motion Falcon', cta_link: 'https://motionfalcon.com', cta_text: 'Try Now' };
+    // Replace variables in HTML
+    let html = template.html_template;
+    Object.keys(testFields).forEach(key => {
+      html = html.replace(new RegExp(`{${key}}`, 'g'), testFields[key]);
+    });
+    // Use your mailer or email service here
+    await mailer.sendHTMLEmail(testTo, template.subject || 'Test Email', html);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error sending test email:', err);
+    res.status(500).json({ error: 'Failed to send test email' });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
