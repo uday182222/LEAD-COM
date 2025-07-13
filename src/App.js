@@ -196,11 +196,11 @@ function AppContent() {
         },
         body: JSON.stringify({
           template_variables: {
-            headline: "🚀 Boost Your Business",
-            subheadline: "AI-Powered Campaigns by Motion Falcon",
-            content: "We help brands reach more people with personalization and automation.",
-            cta_text: "Get Started",
-            cta_link: "https://motionfalcon.com/demo"
+            headline: "🚀 Unlock Growth with Motion Falcon",
+            subheadline: "AI-powered email marketing for startups",
+            content: "We help you reach more leads with smart targeting, personalized content, and automated campaigns.",
+            cta_text: "Try It Now",
+            cta_link: "https://motionfalcon.com/get-started"
           }
         })
       });
