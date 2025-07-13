@@ -1637,7 +1637,7 @@ app.post('/api/email-templates', async (req, res) => {
   console.log("Received template data:", req.body);
   console.log("Received html_template:", req.body.html_template);
   try {
-    const { name, html_template, fields, subject, type } = req.body;
+    const { name, subject, html_template, fields, type } = req.body;
     if (!name || !html_template) {
       return res.status(400).json({ success: false, error: 'Name and html_template are required' });
     }
@@ -1655,7 +1655,7 @@ app.post('/api/email-templates', async (req, res) => {
 app.put('/api/email-templates/:id', async (req, res) => {
   console.log('📩 [Backend] PUT /api/email-templates/:id payload:', req.body);
   try {
-    const { name, html_template, fields, subject, type } = req.body;
+    const { name, subject, html_template, fields, type } = req.body;
     if (!name || !html_template) {
       return res.status(400).json({ success: false, error: 'Name and html_template are required' });
     }
