@@ -1637,11 +1637,12 @@ app.post('/api/email-templates', async (req, res) => {
   console.log("Received template data:", req.body);
   console.log("Received html_template:", req.body.html_template);
   try {
-    const { name, subject, html_template, fields, type } = req.body;
+    const { name, html_template, fields, type } = req.body;
+    const subject = req.body.subject?.trim() || 'Untitled Subject';
     if (!name || !html_template) {
       return res.status(400).json({ success: false, error: 'Name and html_template are required' });
     }
-    if (!subject || subject.trim() === '') {
+    if (!subject || subject === '') {
       return res.status(400).json({ error: 'Subject is required' });
     }
     const template = await db.createEmailTemplate({ name, html_template, fields, subject, type });
@@ -1693,9 +1694,7 @@ app.post('/api/email-templates/clone/:id', async (req, res) => {
       name: clonedName,
       html_template: original.html_template,
       fields: Array.isArray(original.fields) ? original.fields : [],
-      subject: (!original.subject || original.subject === 'No Subject') 
-        ? 'Untitled Subject' 
-        : original.subject,
+      subject: original.subject?.trim() || 'Untitled Subject',
       type: original.type || 'email',
     };
     const result = await db.createEmailTemplate(newTemplate);

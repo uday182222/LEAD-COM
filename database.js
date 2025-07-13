@@ -905,9 +905,7 @@ const clearAllPendingLeads = async () => {
 const createEmailTemplate = async (template) => {
   const client = await pool.connect();
   try {
-    const subject = (!template.subject || template.subject === 'No Subject')
-      ? 'Untitled Subject'
-      : template.subject;
+    const subject = template.subject?.trim() || 'Untitled Subject';
     const query = `
       INSERT INTO email_templates (name, html_template, type, subject)
       VALUES ($1, $2, $3, $4)
