@@ -327,6 +327,10 @@ const isDbTemplate = (template) => template && typeof template.id === 'number';
 // Save or update template via API
 const saveTemplate = async () => {
   if (!templateName.trim()) return;
+  if (!subject.trim()) {
+    alert('Please enter a subject for the email template.');
+    return;
+  }
   setSavingTemplate(true);
   try {
     const templateData = {
