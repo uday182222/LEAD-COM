@@ -812,6 +812,25 @@ return (
           </button>
         </div>
 
+        {/* Campaign Fields */}
+        <div style={{ margin: '24px 0', padding: '16px', background: 'rgba(100,255,218,0.05)', borderRadius: 12 }}>
+          <h4 style={{ color: '#64ffda', marginBottom: 12 }}>Campaign Fields</h4>
+          {Array.isArray(fields) && fields.length > 0 ? (
+            fields.map(field => (
+              <div key={field} style={{ marginBottom: 8 }}>
+                <input
+                  value={presetVars[field] || ''}
+                  onChange={e => setPresetVars({ ...presetVars, [field]: e.target.value })}
+                  placeholder={field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  style={{ width: '100%', padding: 8, borderRadius: 6, border: '1px solid #64ffda' }}
+                />
+              </div>
+            ))
+          ) : (
+            <div style={{ color: '#8892b0', fontSize: 14 }}>No fields defined for this template.</div>
+          )}
+        </div>
+
         {/* Template Management */}
         <div style={{ 
           borderTop: '1px solid rgba(136, 146, 176, 0.2)',
@@ -1349,17 +1368,17 @@ return (
           </div>
           {testResult && (
             <div style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 'bold',
+              padding: '8px 12px',                // padding
+              borderRadius: '6px',                // border radius
+              fontSize: '12px',                  // font size
+              fontWeight: 'bold',                // font weight
               background: testResult.success 
-                ? 'rgba(100, 255, 218, 0.2)' 
-                : 'rgba(255, 100, 100, 0.2)',
-              color: testResult.success ? '#64ffda' : '#ff6464',
+                ? 'rgba(100, 255, 218, 0.2)'       // background color
+                : 'rgba(255, 100, 100, 0.2)',      // background color
+              color: testResult.success ? '#64ffda' : '#ff6464', // color
               border: testResult.success ? '1px solid rgba(100, 255, 218, 0.4)' : '1px solid rgba(255, 100, 100, 0.4)'
             }}>
-              {testResult.message}
+              {testResult.message}                // message      
             </div>
           )}
         </div>
