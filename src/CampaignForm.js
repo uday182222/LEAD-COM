@@ -67,6 +67,12 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
     // Validate HTML template selection
     if (!selectedHtmlTemplate) {
       newErrors.selectedHtmlTemplate = 'Please select an HTML template';
+    } else {
+      // Validate subject of selected template
+      const selectedTemplate = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
+      if (!selectedTemplate || !selectedTemplate.subject || !selectedTemplate.subject.trim()) {
+        newErrors.selectedHtmlTemplate = 'Template must have a subject to proceed';
+      }
     }
 
     // Validate available leads
@@ -514,47 +520,82 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
             👀 Template Preview
           </h3>
           
-          {selectedHtmlTemplate ? (
-            (() => {
-              const template = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
-              if (!template) return null;
-              
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {/* Template Info */}
-                  <div style={{
-                    background: 'rgba(100, 255, 218, 0.1)',
-                    border: '1px solid rgba(100, 255, 218, 0.3)',
-                    borderRadius: '12px',
-                    padding: '16px'
+          {selectedHtmlTemplate ? (() => {
+            const template = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
+            if (!template) return null;
+            
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Template Info */}
+                <div style={{
+                  background: 'rgba(100, 255, 218, 0.1)',
+                  border: '1px solid rgba(100, 255, 218, 0.3)',
+                  borderRadius: '12px',
+                  padding: '16px'
+                }}>
+                  <div style={{ 
+                    fontSize: '14px',
+                    color: '#64ffda',
+                    marginBottom: '12px',
+                    fontWeight: 'bold'
                   }}>
-                    <div style={{ 
-                      fontSize: '14px',
-                      color: '#64ffda',
-                      marginBottom: '12px',
-                      fontWeight: 'bold'
-                    }}>
-                      📋 Template Information
+                    📋 Template Information
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: '#8892b0' }}>Name:</span>
+                      <span style={{ fontSize: '12px', color: '#ffffff', fontWeight: 'bold' }}>{template.name}</span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#8892b0' }}>Name:</span>
-                        <span style={{ fontSize: '12px', color: '#ffffff', fontWeight: 'bold' }}>{template.name}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#8892b0' }}>Type:</span>
-                        <span style={{ fontSize: '12px', color: '#64ffda' }}>
-                          📧 Email
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', color: '#8892b0' }}>Variables:</span>
-                        <span style={{ fontSize: '12px', color: '#ffffff' }}>{template.fields.length}</span>
-                      </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: '#8892b0' }}>Type:</span>
+                      <span style={{ fontSize: '12px', color: '#64ffda' }}>
+                        📧 Email
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: '#8892b0' }}>Variables:</span>
+                      <span style={{ fontSize: '12px', color: '#ffffff' }}>{template.fields.length}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Variables */}
+                {/* Variables */}
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid rgba(136, 146, 176, 0.2)'
+                }}>
+                  <div style={{ 
+                    fontSize: '12px',
+                    color: '#8892b0',
+                    marginBottom: '8px',
+                    fontWeight: 'bold'
+                  }}>
+                    📊 Available Variables:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {template.fields.map((field) => (
+                      <span
+                        key={field}
+                        style={{
+                          padding: '4px 8px',
+                          background: 'rgba(100, 255, 218, 0.2)',
+                          border: '1px solid rgba(100, 255, 218, 0.4)',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          color: '#64ffda',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {getFieldDisplayName(field)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content Preview */}
+                {template.type === 'email' && template.subject && (
                   <div style={{
                     background: 'rgba(0, 0, 0, 0.3)',
                     borderRadius: '12px',
@@ -567,100 +608,68 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                       marginBottom: '8px',
                       fontWeight: 'bold'
                     }}>
-                      📊 Available Variables:
+                      📧 Subject Preview:
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {template.fields.map((field) => (
-                        <span
-                          key={field}
-                          style={{
-                            padding: '4px 8px',
-                            background: 'rgba(100, 255, 218, 0.2)',
-                            border: '1px solid rgba(100, 255, 218, 0.4)',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            color: '#64ffda',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          {getFieldDisplayName(field)}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Content Preview */}
-                  {template.type === 'email' && template.subject && (
                     <div style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      border: '1px solid rgba(136, 146, 176, 0.2)'
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
                     }}>
-                      <div style={{ 
-                        fontSize: '12px',
-                        color: '#8892b0',
-                        marginBottom: '8px',
-                        fontWeight: 'bold'
-                      }}>
-                        📧 Subject Preview:
-                      </div>
                       <div style={{
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
-                        <div style={{
-                          color: '#ffffff',
-                          fontSize: '13px',
-                          lineHeight: '1.4'
-                        }}>
-                          {template.subject}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {template.body && (
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.3)',
-                      borderRadius: '12px',
-                      padding: '16px',
-                      border: '1px solid rgba(136, 146, 176, 0.2)'
-                    }}>
-                      <div style={{ 
-                        fontSize: '12px',
-                        color: '#8892b0',
-                        marginBottom: '8px',
-                        fontWeight: 'bold'
-                      }}>
-                        {template.type === 'email' ? '📧' : '💬'} Content Preview:
-                      </div>
-                      <div style={{
-                        background: false 
-                          ? 'linear-gradient(135deg, #25D366, #128C7E)' 
-                          : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        border: false 
-                          ? 'none' 
-                          : '1px solid rgba(255, 255, 255, 0.1)',
                         color: '#ffffff',
                         fontSize: '13px',
-                        lineHeight: '1.5',
-                        whiteSpace: 'pre-wrap',
-                        maxHeight: '200px',
-                        overflow: 'auto'
+                        lineHeight: '1.4'
                       }}>
-                        {template.body}
+                        {template.subject}
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })()
-          ) : (
+                  </div>
+                )}
+
+                {template.body && (
+                  <div style={{
+                    background: 'rgba(0, 0, 0, 0.3)',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    border: '1px solid rgba(136, 146, 176, 0.2)'
+                  }}>
+                    <div style={{ 
+                      fontSize: '12px',
+                      color: '#8892b0',
+                      marginBottom: '8px',
+                      fontWeight: 'bold'
+                    }}>
+                      {template.type === 'email' ? '📧' : '💬'} Content Preview:
+                    </div>
+                    <div style={{
+                      background: false 
+                        ? 'linear-gradient(135deg, #25D366, #128C7E)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      border: false 
+                        ? 'none' 
+                        : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      lineHeight: '1.5',
+                      whiteSpace: 'pre-wrap',
+                      maxHeight: '200px',
+                      overflow: 'auto'
+                    }}>
+                      {template.body}
+                    </div>
+                  </div>
+                )}
+                {(!template.subject || !template.subject.trim()) && (
+                  <div style={{ color: '#dc3545', fontWeight: 'bold', marginTop: '8px' }}>
+                    ⚠️ Template must have a subject to proceed
+                  </div>
+                )}
+              </div>
+            );
+          })() : (
             <div style={{
               display: 'flex',
               flexDirection: 'column',
