@@ -193,7 +193,16 @@ function AppContent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          template_variables: {
+            headline: "Grow with Motion Falcon",
+            subheadline: "AI-Powered Campaigns",
+            content: "Reach your clients with personalized email campaigns powered by AI.",
+            cta_text: "Book a Demo",
+            cta_link: "https://motionfalcon.com/demo"
+          }
+        })
       });
 
       if (!response.ok) {
