@@ -905,12 +905,15 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     let templateInfo = null;
     if (campaign.template_id) {
       templateInfo = await db.getTemplateById(campaign.template_id);
-      if (!templateInfo) {
-        return res.status(400).json({
-          success: false,
-          error: 'Template not found'
-        });
-      }
+    }
+    // Fallback to master template (ID: 94) if missing or invalid
+    if (!templateInfo || !templateInfo.html_template || templateInfo.html_template.trim().length < 100) {
+      console.warn(`⚠️ Template ${campaign.template_id} is invalid. Using Master Template (ID: 94)`);
+      templateInfo = await db.getTemplateById(94);
+    }
+    // Throw if even master template is missing or invalid
+    if (!templateInfo || !templateInfo.html_template || templateInfo.html_template.trim().length < 100) {
+      throw new Error('❌ No valid HTML template found for this campaign or as fallback.');
     }
     // ✅ Step 2: Sanity Log Campaign and Template
     console.log("🎯 Campaign:", campaign);
@@ -922,20 +925,18 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       console.warn("⚠️ Template type not supported:", templateInfo?.type);
       return res.status(400).json({ error: 'Template type not supported' });
     }
-
     // After fetching templateInfo from DB
     console.log("📄 [DB Fetch] What is the template content?", {
       file_name: templateInfo.file_name,
       htmlLength: templateInfo.html_template?.length || 0,
     });
+    // Use only DB template HTML
+    let html = templateInfo.html_template;
+    console.log(`📧 Using html_template from DB (length: ${html.length})`);
 
     // Build emailTemplate robustly
-    let html = null;
     let templatePath = null;
-    if (templateInfo.html_template && templateInfo.html_template.trim().length > 0) {
-      html = templateInfo.html_template;
-      console.log(`📧 Using html_template from DB (length: ${html.length})`);
-    } else if (templateInfo.file_name && templateInfo.file_name.endsWith('.html')) {
+    if (templateInfo.file_name && templateInfo.file_name.endsWith('.html')) {
       templatePath = `templates/${templateInfo.file_name}`;
       const fs = require('fs');
       const path = require('path');
