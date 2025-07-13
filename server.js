@@ -929,12 +929,13 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       templateInfo = await db.getTemplateById(94);
     }
 
-    // Re-check master template as fallback
     const isValidFallback = templateInfo && typeof templateInfo.html_template === 'string' && templateInfo.html_template.includes('<html');
 
     if (!isValidFallback) {
       throw new Error('❌ No valid HTML template found for this campaign or as fallback.');
     }
+
+    console.log(`📧 Using html_template from DB (length: ${templateInfo.html_template.length})`);
     // ✅ Step 2: Sanity Log Campaign and Template
     console.log("🎯 Campaign:", campaign);
     console.log("📄 Template Info:", templateInfo);
