@@ -975,10 +975,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       for (const lead of leads) {
         // 2.1 Subject fallback and validation
         const subject = campaign.subject || templateInfo.subject;
-        if (!subject) {
+        if (!subject || subject === 'No Subject') {
           console.warn("❌ Skipping lead: missing subject", { leadId: lead.id });
-              continue;
-            }
+          continue;
+        }
         const html = templateInfo.html_template;
         if (!html || !html.trim().startsWith('<')) {
           console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
