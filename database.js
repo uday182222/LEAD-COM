@@ -897,20 +897,17 @@ const clearAllPendingLeads = async () => {
 };
 
 // Create a new email template
-const createEmailTemplate = async (templateData) => {
+const createEmailTemplate = async (template) => {
   const client = await pool.connect();
   try {
     const query = `
-      INSERT INTO email_templates (name, html_template, fields)
-      VALUES ($1, $2, $3)
-      RETURNING id, name, html_template, fields, created_at, updated_at
+      INSERT INTO email_templates (name, html_template, type, subject)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *;
     `;
-    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || [])];
+    const values = [template.name, template.html_template, template.type || 'email', template.subject || null];
     const result = await client.query(query, values);
     return result.rows[0];
-  } catch (error) {
-    console.error('Error creating email template:', error);
-    throw error;
   } finally {
     client.release();
   }
@@ -921,7 +918,7 @@ const getEmailTemplates = async () => {
   const client = await pool.connect();
   try {
     const query = `
-      SELECT id, name, html_template, fields, created_at, updated_at
+      SELECT id, name, html_template, fields, subject, type, created_at, updated_at
       FROM email_templates
       ORDER BY created_at DESC
     `;
@@ -956,22 +953,18 @@ const getEmailTemplateById = async (templateId) => {
 };
 
 // Update email template
-const updateEmailTemplate = async (templateId, templateData) => {
+const updateEmailTemplate = async (id, updates) => {
   const client = await pool.connect();
   try {
     const query = `
       UPDATE email_templates
-      SET name = $1, html_template = $2, fields = $3, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
-      RETURNING id, name, html_template, fields, created_at, updated_at
+      SET name = $1, html_template = $2, type = $3, subject = $4, updated_at = NOW()
+      WHERE id = $5
+      RETURNING *;
     `;
-    const values = [templateData.name, templateData.html_template, JSON.stringify(templateData.fields || []), templateId];
+    const values = [updates.name, updates.html_template, updates.type, updates.subject, id];
     const result = await client.query(query, values);
-    if (result.rows.length === 0) return null;
     return result.rows[0];
-  } catch (error) {
-    console.error('Error updating email template:', error);
-    throw error;
   } finally {
     client.release();
   }
