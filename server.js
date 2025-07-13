@@ -923,6 +923,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     }
     // ✅ Step 1: Read campaign-level template variables from request body
     const templateVariables = req.body.template_variables || {};
+    console.log("✅ Received templateVariables:", templateVariables);
     // After you fetch templateInfo by template_id
     if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
       console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Falling back to template 104.`);
@@ -1008,6 +1009,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           to = 'team@motionfalcon.com';
         }
         // Send email with merged variables
+        console.log("[Final Template Vars for Lead]", personalizedVars);
         const result = await emailService.sendHTMLEmail(to, renderedSubject, { html: renderedHTML }, personalizedVars);
         if (result.success) {
           console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
