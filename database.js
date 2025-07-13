@@ -933,7 +933,8 @@ const getEmailTemplates = async () => {
         type, 
         is_system_template, 
         created_at, 
-        updated_at
+        updated_at,
+        original_template_id
       FROM email_templates
       ORDER BY created_at DESC
     `;
@@ -952,7 +953,7 @@ const getEmailTemplateById = async (templateId) => {
   const client = await pool.connect();
   try {
     const query = `
-      SELECT id, name, html_template, fields, created_at, updated_at
+      SELECT id, name, subject, html_template, fields, type, is_system_template, created_at, updated_at, original_template_id
       FROM email_templates
       WHERE id = $1
     `;

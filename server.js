@@ -1615,7 +1615,12 @@ app.get('/api/email-templates', async (req, res) => {
   console.log("DB object keys:", Object.keys(db));
   try {
     const templates = await db.getEmailTemplates();
-    res.json({ success: true, templates });
+    // Add original_template_id to each template if present
+    const templatesWithOriginal = templates.map(t => ({
+      ...t,
+      original_template_id: t.original_template_id || null,
+    }));
+    res.json({ success: true, templates: templatesWithOriginal });
   } catch (error) {
     console.error('Error fetching email templates:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -1626,7 +1631,10 @@ app.get('/api/email-templates/:id', async (req, res) => {
   try {
     const template = await db.getEmailTemplateById(req.params.id);
     if (!template) return res.status(404).json({ success: false, error: 'Template not found' });
-    res.json({ success: true, template });
+    res.json({ success: true, template: {
+      ...template,
+      original_template_id: template.original_template_id || null,
+    }});
   } catch (error) {
     console.error('Error fetching email template by ID:', error);
     res.status(500).json({ success: false, error: error.message });
