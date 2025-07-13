@@ -80,6 +80,26 @@ async function migrateDatabase() {
       console.log('ℹ️ Check constraint already exists');
     }
 
+    // 6. Add template_html_snapshot and template_subject_snapshot columns if not exist
+    const colHtmlCheck = await client.query(`
+      SELECT column_name FROM information_schema.columns WHERE table_name = 'campaigns' AND column_name = 'template_html_snapshot'
+    `);
+    if (colHtmlCheck.rows.length === 0) {
+      await client.query(`ALTER TABLE campaigns ADD COLUMN template_html_snapshot TEXT NOT NULL DEFAULT ''`);
+      console.log('✅ Added template_html_snapshot column to campaigns');
+    } else {
+      console.log('ℹ️ template_html_snapshot column already exists');
+    }
+    const colSubjectCheck = await client.query(`
+      SELECT column_name FROM information_schema.columns WHERE table_name = 'campaigns' AND column_name = 'template_subject_snapshot'
+    `);
+    if (colSubjectCheck.rows.length === 0) {
+      await client.query(`ALTER TABLE campaigns ADD COLUMN template_subject_snapshot TEXT NOT NULL DEFAULT ''`);
+      console.log('✅ Added template_subject_snapshot column to campaigns');
+    } else {
+      console.log('ℹ️ template_subject_snapshot column already exists');
+    }
+
     await client.query('COMMIT');
     console.log('🎉 Migration completed successfully!');
   } catch (error) {

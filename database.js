@@ -69,6 +69,8 @@ const initializeDatabase = async () => {
         scheduled_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        template_html_snapshot TEXT,
+        template_subject_snapshot TEXT,
         CONSTRAINT check_template CHECK (
           (template_id IS NOT NULL AND template_name IS NULL) OR 
           (template_id IS NULL AND template_name IS NOT NULL)
@@ -337,23 +339,26 @@ const closeDatabase = async () => {
 // Create a new campaign
 const createCampaign = async (campaignData) => {
   const client = await pool.connect();
-  
   try {
     await client.query('BEGIN');
-    
-    // Insert campaign - now only uses template_id
+
+    // Fetch the template to snapshot
+    const template = await getEmailTemplateById(campaignData.templateId);
+    if (!template) throw new Error('Template not found');
+
+    // Insert campaign with template snapshot
     const campaignQuery = `
-      INSERT INTO campaigns (name, template_id, scheduled_at)
-      VALUES ($1, $2, $3)
-      RETURNING id, name, template_id, status, scheduled_at, created_at
+      INSERT INTO campaigns (name, template_id, scheduled_at, template_html_snapshot, template_subject_snapshot)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, template_id, status, scheduled_at, template_html_snapshot, template_subject_snapshot, created_at
     `;
-    
     const campaignValues = [
       campaignData.name,
       campaignData.templateId,
-      campaignData.scheduledAt || null
+      campaignData.scheduledAt || null,
+      template.html_template,
+      template.subject
     ];
-    
     const campaignResult = await client.query(campaignQuery, campaignValues);
     const campaign = campaignResult.rows[0];
     
@@ -1015,6 +1020,6 @@ const db = {
   getEmailTemplateById,
   updateEmailTemplate,
   deleteEmailTemplate
-};
+}; 
 
 export default db; 
