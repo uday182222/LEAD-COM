@@ -96,15 +96,22 @@ const initializeSESClient = async () => {
  * @returns {string} Processed HTML content with variables replaced
  */
 const replaceTemplateVariables = (htmlContent, templateData = {}) => {
+  if (!htmlContent || typeof htmlContent !== 'string') return '';
+
   let processedHTML = htmlContent;
-  
-  // Replace variables in format {{variable_name}}
+
+  // Replace both {{variable}} and {variable}
   Object.keys(templateData).forEach(key => {
-    const placeholder = new RegExp(`{{${key}}}`, 'g');
-    const value = templateData[key] || '';
-    processedHTML = processedHTML.replace(placeholder, value);
+    const value = templateData[key] ?? '';
+
+    const doubleBraceRegex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    const singleBraceRegex = new RegExp(`{\\s*${key}\\s*}`, 'g');
+
+    processedHTML = processedHTML
+      .replace(doubleBraceRegex, value)
+      .replace(singleBraceRegex, value);
   });
-  
+
   return processedHTML;
 };
 
@@ -144,9 +151,9 @@ const loadHTMLTemplate = async (templatePath) => {
  * @returns {Promise<Object>} Result object with success status and details
  */
 const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
-  const html = options.html;
-  // Validation for html
-  if (!html || !html.trim().startsWith('<')) {
+  let html = options.html;
+
+  if (!html || typeof html !== 'string' || html.trim().length < 10) {
     console.error("❌ [SEND ERROR] Invalid HTML for campaign", {
       to,
       htmlLength: html?.length || 0
@@ -174,6 +181,11 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
     if (!finalHTML || finalHTML.trim() === '') {
       throw new Error('No valid HTML provided');
     }
+
+    // Log output and variable summary for debugging
+    console.log(`[EMAIL SEND] To: ${to}, Subject: "${subject}"`);
+    console.log(`[Template Preview]: ${finalHTML.slice(0, 200)}...`);
+    console.log(`[Used Variables]:`, templateData);
 
     const params = {
       Source: EMAIL_FROM,
