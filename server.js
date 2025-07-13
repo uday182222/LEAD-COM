@@ -615,6 +615,7 @@ app.post('/api/campaigns', async (req, res) => {
     };
     
     // Handle template creation/selection
+    let selectedTemplate = null;
     if (templateName) {
       // HTML template campaign - create or get template
       const templateData = template || {
@@ -625,15 +626,14 @@ app.post('/api/campaigns', async (req, res) => {
         cta_text: 'Learn More',
         unsubscribe_link: 'https://example.com/unsubscribe'
       };
-      
       // Create template in database
       const createdTemplate = await db.createTemplate({
         name: templateName,
         html_template: templateData.htmlTemplate || '<html><body><h1>Default Template</h1></body></html>',
         fields: templateData.fields || []
       });
-      
       campaignData.templateId = createdTemplate.id;
+      selectedTemplate = createdTemplate;
     } else {
       // Regular template campaign - validate templateId is UUID
       if (!templateId || typeof templateId !== 'string') {
@@ -642,7 +642,22 @@ app.post('/api/campaigns', async (req, res) => {
           error: 'Template ID must be a valid UUID'
         });
       }
-      campaignData.templateId = templateId;
+      // Validate template exists and is valid
+      selectedTemplate = await db.getEmailTemplateById(templateId);
+      if (!selectedTemplate || !selectedTemplate.html_template || selectedTemplate.html_template.trim().length < 100) {
+        // Fallback to master template (ID: 94)
+        console.warn(`⚠️ Template ${templateId} is invalid or missing. Using Master Template (ID: 94).`);
+        selectedTemplate = await db.getEmailTemplateById(94);
+        if (!selectedTemplate || !selectedTemplate.html_template || selectedTemplate.html_template.trim().length < 100) {
+          return res.status(400).json({
+            success: false,
+            error: 'No valid template found for campaign (neither selected nor master template).'
+          });
+        }
+        campaignData.templateId = 94;
+      } else {
+        campaignData.templateId = templateId;
+      }
     }
     
     const campaign = await db.createCampaign(campaignData);
