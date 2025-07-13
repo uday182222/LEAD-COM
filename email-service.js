@@ -144,14 +144,14 @@ const loadHTMLTemplate = async (templatePath) => {
  * @returns {Promise<Object>} Result object with success status and details
  */
 const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
-  console.log("📨 [Inside sendHTMLEmail] Did we receive HTML or fallback to templatePath?", {
-    htmlExists: !!options.html,
-    htmlLength: options.html?.length || 0,
-    templatePath: options.templatePath || 'None',
-  });
-  if (!options.html && !options.templatePath) {
-    console.log("❌ [ERROR] Missing both HTML and templatePath — cannot send email!");
-    throw new Error('No HTML source provided: options.html or options.templatePath required');
+  const html = options.html;
+  // Validation for html
+  if (!html || !html.trim().startsWith('<')) {
+    console.error("❌ [SEND ERROR] Invalid HTML for campaign", {
+      to,
+      htmlLength: html?.length || 0
+    });
+    throw new Error("No valid HTML provided");
   }
   try {
     if (!sesClient) {
@@ -164,17 +164,8 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
     if (!emailRegex.test(to)) {
       throw new Error(`Invalid email format: ${to}`);
     }
-    let htmlContent;
-    if (options.html) {
-      htmlContent = options.html;
-      console.log('✅ Using raw HTML from database for email');
-    } else if (options.templatePath) {
-      htmlContent = await loadHTMLTemplate(options.templatePath);
-      console.log(`📄 Loaded HTML template from file: ${options.templatePath}`);
-    } else {
-      throw new Error('No HTML source provided: options.html or options.templatePath required');
-    }
-    const processedHTML = replaceTemplateVariables(htmlContent, templateData);
+    // Only use html from options
+    const processedHTML = replaceTemplateVariables(html, templateData);
     const params = {
       Source: EMAIL_FROM,
       Destination: {
@@ -206,8 +197,7 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
       messageId: result.MessageId,
       to: to,
       from: EMAIL_FROM,
-      htmlSource: options.html ? 'db' : 'file',
-      templatePath: options.templatePath,
+      htmlSource: 'db',
       templateData: templateData
     };
   } catch (error) {
@@ -226,8 +216,7 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
       code: errorCode,
       to: to,
       from: EMAIL_FROM,
-      htmlSource: options.html ? 'db' : 'file',
-      templatePath: options.templatePath,
+      htmlSource: 'db',
       templateData: templateData
     };
   }
@@ -286,6 +275,6 @@ const emailService = {
   validateSESConfig,
   initializeSESClient,
   EMAIL_FROM
-};
+}; 
 
 export default emailService; 

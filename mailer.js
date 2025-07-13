@@ -444,6 +444,6 @@ const mailer = {
   SMTP_PORT,
   SMTP_USER,
   SMTP_SECURE
-};
+}; 
 
 export default mailer; 

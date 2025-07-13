@@ -16,7 +16,7 @@ const worker = new Worker(
   'campaignQueue',
   async (job) => {
     const { lead, campaignId } = job.data;
-    try {
+  try {
       await sendEmailToLead(lead);
       await db.updateCampaignLeadStatus(campaignId, lead.id, 'COMPLETED');
       return { status: 'completed', leadId: lead.id };

@@ -4,7 +4,7 @@ dotenv.config();
 
 const connection = {
   url: process.env.REDIS_URL,
-  tls: {
+    tls: {
     rejectUnauthorized: false,
   },
 };
