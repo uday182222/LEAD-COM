@@ -164,8 +164,17 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
     if (!emailRegex.test(to)) {
       throw new Error(`Invalid email format: ${to}`);
     }
-    // Only use html from options
     const processedHTML = replaceTemplateVariables(html, templateData);
+
+    // Fallback if replaceTemplateVariables returns empty (e.g., no variables present)
+    const finalHTML = (processedHTML && processedHTML.trim().length > 0)
+      ? processedHTML
+      : html;
+
+    if (!finalHTML || finalHTML.trim() === '') {
+      throw new Error('No valid HTML provided');
+    }
+
     const params = {
       Source: EMAIL_FROM,
       Destination: {
@@ -178,11 +187,11 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
         },
         Body: {
           Html: {
-            Data: processedHTML,
+            Data: finalHTML,
             Charset: 'UTF-8',
           },
           Text: {
-            Data: processedHTML.replace(/<[^>]*>/g, ''),
+            Data: finalHTML.replace(/<[^>]*>/g, ''),
             Charset: 'UTF-8',
           },
         },
