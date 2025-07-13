@@ -921,21 +921,32 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (campaign.template_id) {
       templateInfo = await db.getTemplateById(campaign.template_id);
     }
+    // Clean and debug html_template
+    let rawHTML = (templateInfo?.html_template || '').trim();
+    // Remove wrapping quotes if present
+    if (rawHTML.startsWith("'") && rawHTML.endsWith("'")) {
+      rawHTML = rawHTML.slice(1, -1).trim();
+    }
+    console.log('[TEMPLATE DEBUG]', 'typeof:', typeof rawHTML, 'length:', rawHTML.length, 'preview:', rawHTML.slice(0, 80));
     // Check if the template has valid HTML content
-    let isValidTemplate = templateInfo && typeof templateInfo.html_template === 'string' && templateInfo.html_template.includes('<html');
+    let isValidTemplate = typeof rawHTML === 'string' && rawHTML.includes('<html');
 
     if (!isValidTemplate) {
       console.warn(`⚠️ Template ${campaign.template_id} is invalid. Using Master Template (ID: 94)`);
       templateInfo = await db.getTemplateById(94);
+      rawHTML = (templateInfo?.html_template || '').trim();
+      if (rawHTML.startsWith("'") && rawHTML.endsWith("'")) {
+        rawHTML = rawHTML.slice(1, -1).trim();
+      }
+      console.log('[TEMPLATE DEBUG] (fallback)', 'typeof:', typeof rawHTML, 'length:', rawHTML.length, 'preview:', rawHTML.slice(0, 80));
+      isValidTemplate = typeof rawHTML === 'string' && rawHTML.includes('<html');
     }
 
-    const isValidFallback = templateInfo && typeof templateInfo.html_template === 'string' && templateInfo.html_template.includes('<html');
-
-    if (!isValidFallback) {
+    if (!isValidTemplate) {
       throw new Error('❌ No valid HTML template found for this campaign or as fallback.');
     }
 
-    console.log(`📧 Using html_template from DB (length: ${templateInfo.html_template.length})`);
+    console.log(`📧 Using html_template from DB (length: ${rawHTML.length})`);
     // ✅ Step 2: Sanity Log Campaign and Template
     console.log("🎯 Campaign:", campaign);
     console.log("📄 Template Info:", templateInfo);
@@ -949,10 +960,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     // After fetching templateInfo from DB
     console.log("📄 [DB Fetch] What is the template content?", {
       file_name: templateInfo.file_name,
-      htmlLength: templateInfo.html_template?.length || 0,
+      htmlLength: rawHTML.length,
     });
-    // Use only DB template HTML
-    let html = templateInfo.html_template;
+    // Use only cleaned DB template HTML
+    let html = rawHTML;
     console.log(`📧 Using html_template from DB (length: ${html.length})`);
 
     // Build emailTemplate robustly
