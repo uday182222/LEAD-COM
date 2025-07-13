@@ -1720,7 +1720,7 @@ app.post('/api/email-templates/:id/test', async (req, res) => {
       html = html.replace(new RegExp(`{${key}}`, 'g'), testFields[key]);
     });
     // Use your mailer or email service here
-    await mailer.sendHTMLEmail(testTo, template.subject || 'Test Email', html);
+    await mailer.sendHtmlEmail(testTo, template.subject || 'Test Email', html);
     res.json({ success: true });
   } catch (err) {
     console.error('Error sending test email:', err);
