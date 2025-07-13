@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -486,6 +487,28 @@ useEffect(() => {
   }
 }, [htmlTemplate]);
 
+const navigate = useNavigate();
+const [cloningTemplateId, setCloningTemplateId] = useState(null);
+
+// Add this function for DB template cloning
+const handleCloneDbTemplate = async (templateId) => {
+  setCloningTemplateId(templateId);
+  try {
+    const res = await fetch(`${API_URL}/api/email-templates/clone/${templateId}`, { method: 'POST' });
+    const cloned = await res.json();
+    if (cloned && cloned.id) {
+      navigate(`/template/edit/${cloned.id}`);
+    } else {
+      alert('Cloning succeeded but no template ID returned');
+    }
+  } catch (err) {
+    console.error('Clone failed:', err);
+    alert('Something went wrong while cloning the template.');
+  } finally {
+    setCloningTemplateId(null);
+  }
+};
+
 return (
   <div style={{ 
     maxWidth: 1400, 
@@ -865,6 +888,24 @@ return (
                           }}
                         >
                           Edit
+                        </button>
+                        <button
+                          onClick={() => handleCloneDbTemplate(template.id)}
+                          disabled={cloningTemplateId === template.id}
+                          style={{
+                            padding: '6px 12px',
+                            background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+                            color: '#1a1a2e',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            cursor: cloningTemplateId === template.id ? 'not-allowed' : 'pointer',
+                            opacity: cloningTemplateId === template.id ? 0.6 : 1,
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {cloningTemplateId === template.id ? 'Cloning...' : 'Clone'}
                         </button>
                         <button
                           onClick={() => deleteTemplate(template.id)}

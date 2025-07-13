@@ -949,7 +949,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       console.error('❌ No valid html_template or file_name found in templateInfo:', templateInfo);
       throw new Error('No valid HTML template source found (neither html_template nor file_name)');
     }
-
+    
     // Update campaign status to RUNNING
     const updatedCampaign = await db.updateCampaignStatus(campaignId, 'RUNNING');
     
@@ -977,8 +977,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         const subject = campaign.subject || templateInfo.subject;
         if (!subject) {
           console.warn("❌ Skipping lead: missing subject", { leadId: lead.id });
-          continue;
-        }
+              continue;
+            }
         const html = templateInfo.html_template;
         if (!html || !html.trim().startsWith('<')) {
           console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
@@ -1016,23 +1016,23 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           templatePath: emailTemplate.templatePath,
         });
         const result = await emailService.sendHTMLEmail(emailTemplate);
-        if (result.success) {
-          console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
-          sentCount++;
-          await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-          // Delete the lead from database after successful email delivery
-          try {
-            await db.deleteLeadAfterEmail(lead.id);
-            console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
-          } catch (deleteError) {
-            console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
-          }
-        } else {
-          console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
-          failedCount++;
-          await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
-        }
-        await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
+            if (result.success) {
+              console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
+              sentCount++;
+              await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
+              // Delete the lead from database after successful email delivery
+              try {
+                await db.deleteLeadAfterEmail(lead.id);
+                console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
+              } catch (deleteError) {
+                console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
+              }
+            } else {
+              console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
+              failedCount++;
+              await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
+            }
+            await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
       }
       // 3.3 After the loop, check if any emails were sent
       if (sentCount === 0) {
@@ -1042,29 +1042,29 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           success: true,
           message: 'Campaign completed — no valid emails were sent.'
         });
+        }
+        console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
+      } else {
+        // Only email campaigns are supported
+        console.log(`⚠️ Template type not supported: ${template?.type}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Only email campaigns are supported'
+        });
       }
-      console.log(`📧 Email campaign completed: ${sentCount} sent, ${failedCount} failed`);
-    } else {
-      // Only email campaigns are supported
-      console.log(`⚠️ Template type not supported: ${template?.type}`);
-      return res.status(400).json({
-        success: false,
-        error: 'Only email campaigns are supported'
-      });
-    }
-  res.json({
-    success: true,
-    message: 'Campaign started successfully',
-    campaign: {
-      id: updatedCampaign.id,
-      name: updatedCampaign.name,
-      status: updatedCampaign.status,
-      updatedAt: updatedCampaign.updated_at,
-      leadCount: campaign.leadCount
-    }
-  });
-
-} catch (error) {
+    res.json({
+      success: true,
+      message: 'Campaign started successfully',
+      campaign: {
+        id: updatedCampaign.id,
+        name: updatedCampaign.name,
+        status: updatedCampaign.status,
+        updatedAt: updatedCampaign.updated_at,
+        leadCount: campaign.leadCount
+      }
+    });
+    
+  } catch (error) {
 
     console.error('Start campaign error:', error);
     res.status(500).json({
@@ -1310,10 +1310,10 @@ app.post('/api/test-email', async (req, res) => {
     // Send test email using the email service
     const result = await emailService.sendHTMLEmail(to, subject, htmlTemplate, templateData);
 
-    if (result.success) {
-      res.json({ success: true, message: 'Test email sent successfully!' });
-    } else {
-      res.status(500).json({ error: result.error || 'Failed to send test email' });
+      if (result.success) {
+        res.json({ success: true, message: 'Test email sent successfully!' });
+      } else {
+        res.status(500).json({ error: result.error || 'Failed to send test email' });
     }
   } catch (error) {
     console.error('Test email error:', error);
@@ -1679,6 +1679,28 @@ app.delete('/api/email-templates/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting email template:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/email-templates/clone/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const original = await db.getEmailTemplateById(id);
+    if (!original) return res.status(404).json({ error: 'Template not found' });
+
+    const clonedName = `${original.name} (Copy)`;
+    const newTemplate = {
+      name: clonedName,
+      html_template: original.html_template,
+      fields: original.fields,
+      subject: original.subject || 'Untitled Subject',
+      type: original.type || 'email',
+    };
+    const result = await db.createEmailTemplate(newTemplate);
+    res.json(result);
+  } catch (err) {
+    console.error('Error cloning template:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
