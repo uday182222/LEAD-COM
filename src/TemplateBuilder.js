@@ -267,7 +267,7 @@ const sendTestEmail = async () => {
   try {
     // Use the current values from the input boxes for all template fields
     const templateData = {};
-    if (currentTemplate && currentTemplate.fields) {
+    if (currentTemplate && Array.isArray(currentTemplate.fields)) {
       currentTemplate.fields.forEach(field => {
         templateData[field] = presetVars[field] || '';
       });
@@ -473,7 +473,7 @@ const getFieldDisplayName = (field) => {
 };
 
 // Add 'content' to the preset fields if not present
-if (currentTemplate && currentTemplate.fields && !currentTemplate.fields.includes('content')) {
+if (currentTemplate && Array.isArray(currentTemplate.fields) && !currentTemplate.fields.includes('content')) {
   currentTemplate.fields.push('content');
 }
 
@@ -482,7 +482,7 @@ const allTemplates = [...presetTemplates, ...templates];
 
 // useEffect to update fields live as htmlTemplate changes (if fields are not manually set)
 useEffect(() => {
-  if (!currentTemplate || !currentTemplate.fields || currentTemplate.fields.length === 0) {
+  if (!currentTemplate || !Array.isArray(currentTemplate.fields) || currentTemplate.fields.length === 0) {
     setFields(extractVariablesFromHTML(htmlTemplate));
   }
 }, [htmlTemplate]);
@@ -637,7 +637,7 @@ return (
             ))}
           </div>
           {/* Always show variable input boxes after preset selection */}
-          {currentTemplate && currentTemplate.fields && (
+          {currentTemplate && Array.isArray(currentTemplate.fields) && (
             <div style={{ margin: '24px 0', padding: '16px', background: 'rgba(100,255,218,0.05)', borderRadius: 12 }}>
               <h4 style={{ color: '#64ffda', marginBottom: 12 }}>Template Variables</h4>
               {currentTemplate.fields.map(field => (
@@ -834,7 +834,7 @@ return (
                       fontSize: '12px',
                       color: '#8892b0'
                     }}>
-                      {template.type === 'html' ? '🌐' : '📧'} {template.type === 'html' ? 'HTML' : 'Email'} • {template.fields.length} variables
+                      {template.type === 'html' ? '🌐' : '📧'} {template.type === 'html' ? 'HTML' : 'Email'} • {Array.isArray(template.fields) ? template.fields.length : 0} variables
                     </div>
                     {template.subject && (
                       <div style={{ fontSize: '12px', color: '#64ffda', marginTop: '2px' }}>

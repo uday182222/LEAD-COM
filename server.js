@@ -1692,7 +1692,7 @@ app.post('/api/email-templates/clone/:id', async (req, res) => {
     const newTemplate = {
       name: clonedName,
       html_template: original.html_template,
-      fields: original.fields,
+      fields: Array.isArray(original.fields) ? original.fields : [],
       subject: original.subject || 'Untitled Subject',
       type: original.type || 'email',
     };
