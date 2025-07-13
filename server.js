@@ -921,6 +921,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (campaign.template_id) {
       templateInfo = await db.getEmailTemplateById(campaign.template_id);
     }
+    // ✅ Step 1: Read campaign-level template variables from request body
+    const templateVariables = req.body.template_variables || {};
     // After you fetch templateInfo by template_id
     if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
       console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Falling back to template 104.`);
@@ -989,18 +991,13 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         if (!subject || subject.toLowerCase() === 'no subject') {
           subject = 'Untitled Subject'; // fallback protection
         }
-        // Build campaignVars from campaign fields
-        const campaignVars = {
-          headline: campaign.headline,
-          subheadline: campaign.subheadline,
-          content: campaign.content,
-          cta_text: campaign.cta_text,
-          cta_link: campaign.cta_link
-        };
+        // 🔁 Merge templateVariables and lead for personalizedVars
+        const personalizedVars = { ...templateVariables, ...lead };
         // Use master template HTML
         const masterHTML = templateInfo.html_template;
-        const finalHTML = replaceTemplateVariables(masterHTML, campaignVars);
-        if (!finalHTML || !finalHTML.trim().startsWith('<')) {
+        const renderedHTML = replaceTemplateVariables(masterHTML, personalizedVars);
+        const renderedSubject = replaceTemplateVariables(subject, personalizedVars);
+        if (!renderedHTML || !renderedHTML.trim().startsWith('<')) {
           console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
           continue;
         }
@@ -1010,9 +1007,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           console.log("🧪 Test mode ON — overriding", lead.email, "→ team@motionfalcon.com");
           to = 'team@motionfalcon.com';
         }
-        // Merge lead and campaignVars for template variables
-        const templateData = { ...lead, ...campaignVars };
-        const result = await emailService.sendHTMLEmail(to, subject, { html: finalHTML }, templateData);
+        // Send email with merged variables
+        const result = await emailService.sendHTMLEmail(to, renderedSubject, { html: renderedHTML }, personalizedVars);
         if (result.success) {
           console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
           sentCount++;
