@@ -220,6 +220,13 @@ const [fields, setFields] = useState([]);
 // Add subject state
 const [subject, setSubject] = useState('');
 
+// Add state hooks at the top of the component
+const [headline, setHeadline] = useState('');
+const [subheadline, setSubheadline] = useState('');
+const [content, setContent] = useState('');
+const [ctaText, setCtaText] = useState('');
+const [ctaLink, setCtaLink] = useState('');
+
 // When a preset is selected, initialize presetVars with default or empty values for its fields
 const handlePresetSelect = (preset) => {
   openTemplateModal(preset);
@@ -540,6 +547,33 @@ const filteredTemplates = useMemo(() => {
     return true; // all
   });
 }, [allTemplates, filter]);
+
+const startCampaign = async (campaignId) => {
+  const templateVariables = {
+    headline,
+    subheadline,
+    content,
+    cta_text: ctaText,
+    cta_link: ctaLink
+  };
+  console.log("📤 Sending campaign with templateVariables:", templateVariables);
+  try {
+    const response = await fetch(`${API_URL}/api/campaigns/${campaignId}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ template_variables: templateVariables })
+    });
+    if (response.ok) {
+      console.log("✅ Campaign started successfully!");
+    } else {
+      console.error("❌ Failed to start campaign");
+    }
+  } catch (error) {
+    console.error("⚠️ Error starting campaign:", error);
+  }
+};
 
 return (
   <div style={{ 
