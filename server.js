@@ -978,8 +978,18 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         if (!subject || subject.toLowerCase() === 'no subject') {
           subject = 'Untitled Subject'; // fallback protection
         }
-        const html = templateInfo.html_template;
-        if (!html || !html.trim().startsWith('<')) {
+        // Build campaignVars from campaign fields
+        const campaignVars = {
+          headline: campaign.headline,
+          subheadline: campaign.subheadline,
+          content: campaign.content,
+          cta_text: campaign.cta_text,
+          cta_link: campaign.cta_link
+        };
+        // Use master template HTML
+        const masterHTML = templateInfo.html_template;
+        const finalHTML = replaceTemplateVariables(masterHTML, campaignVars);
+        if (!finalHTML || !finalHTML.trim().startsWith('<')) {
           console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
           continue;
         }
@@ -989,49 +999,26 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
           console.log("🧪 Test mode ON — overriding", lead.email, "→ team@motionfalcon.com");
           to = 'team@motionfalcon.com';
         }
-        const emailTemplate = {
-          from: "team@motionfalcon.com",
-          to,
-          subject,
-          html,
-          templatePath: null,
-          variables: {
-            first_name: lead.first_name,
-            last_name: lead.last_name,
-            company: lead.company,
-            email: lead.email,
-            ...(campaign.variables || {})
-          },
-        };
-        console.log("👉 [Before sendHTMLEmail] What does the email template look like?", {
-          subject: emailTemplate.subject,
-          from: emailTemplate.from,
-          to: lead.email,
-          htmlLength: emailTemplate.html?.length || 0,
-          templatePath: emailTemplate.templatePath,
-        });
-        console.log("📤 Final email template before sending:", {
-          htmlLength: emailTemplate.html?.length || 0,
-          templatePath: emailTemplate.templatePath,
-        });
-        const result = await emailService.sendHTMLEmail(emailTemplate);
-            if (result.success) {
-              console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
-              sentCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
-              // Delete the lead from database after successful email delivery
-              try {
-                await db.deleteLeadAfterEmail(lead.id);
-                console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
-              } catch (deleteError) {
-                console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
-              }
-            } else {
-              console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
-              failedCount++;
-              await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
-            }
-            await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
+        // Merge lead and campaignVars for template variables
+        const templateData = { ...lead, ...campaignVars };
+        const result = await emailService.sendHTMLEmail(to, subject, { html: finalHTML }, templateData);
+        if (result.success) {
+          console.log(`✅ Email sent to ${lead.email} (${lead.first_name || 'Unknown'})`);
+          sentCount++;
+          await db.updateCampaignLeadStatus(campaignId, lead.id, 'SENT');
+          // Delete the lead from database after successful email delivery
+          try {
+            await db.deleteLeadAfterEmail(lead.id);
+            console.log(`🗑️ Lead ${lead.id} (${lead.email}) deleted from database after successful email`);
+          } catch (deleteError) {
+            console.error(`⚠️ Failed to delete lead ${lead.id} after email:`, deleteError.message);
+          }
+        } else {
+          console.log(`❌ Failed to send email to ${lead.email}: ${result.error}`);
+          failedCount++;
+          await db.updateCampaignLeadStatus(campaignId, lead.id, 'FAILED', result.error);
+        }
+        await new Promise(resolve => setTimeout(resolve, EMAIL_DELAY_MS));
       }
       // 3.3 After the loop, check if any emails were sent
       if (sentCount === 0) {
