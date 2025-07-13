@@ -919,7 +919,16 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     // Get template information
     let templateInfo = null;
     if (campaign.template_id) {
-      templateInfo = await db.getTemplateById(campaign.template_id);
+      templateInfo = await db.getEmailTemplateById(campaign.template_id);
+    }
+    // After you fetch templateInfo by template_id
+    if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
+      console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Falling back to template 104.`);
+      templateInfo = await db.getEmailTemplateById(104);
+    }
+    // Step 3: Default fields fallback
+    if (!templateInfo.fields || templateInfo.fields.length === 0) {
+      templateInfo.fields = ['headline', 'subheadline', 'content', 'cta_text', 'cta_link'];
     }
     // Clean and debug html_template
     let rawHTML = (templateInfo?.html_template || '').trim();
@@ -942,45 +951,14 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       isValidTemplate = typeof rawHTML === 'string' && rawHTML.includes('<html');
     }
 
-    if (!isValidTemplate) {
-      throw new Error('❌ No valid HTML template found for this campaign or as fallback.');
-    }
-
-    console.log(`📧 Using html_template from DB (length: ${rawHTML.length})`);
-    // ✅ Step 2: Sanity Log Campaign and Template
-    console.log("🎯 Campaign:", campaign);
-    console.log("📄 Template Info:", templateInfo);
-    // ✅ Step 1: Confirm Template Has Type
-    if (!templateInfo?.type) console.warn("⚠️ Template type is missing");
-    console.log("📦 Template type:", templateInfo.type);
-    if (templateInfo?.type !== 'email') {
-      console.warn("⚠️ Template type not supported:", templateInfo?.type);
-      return res.status(400).json({ error: 'Template type not supported' });
-    }
-    // After fetching templateInfo from DB
-    console.log("📄 [DB Fetch] What is the template content?", {
-      file_name: templateInfo.file_name,
-      htmlLength: rawHTML.length,
-    });
-    // Use only cleaned DB template HTML
-    let html = rawHTML;
-    console.log(`📧 Using html_template from DB (length: ${html.length})`);
-
-    // Build emailTemplate robustly
-    let templatePath = null;
-    if (templateInfo.file_name && templateInfo.file_name.endsWith('.html')) {
-      templatePath = `templates/${templateInfo.file_name}`;
-      const fs = require('fs');
-      const path = require('path');
-      const absPath = path.join(process.cwd(), templatePath);
-      const exists = fs.existsSync(absPath);
-      console.log(`📄 Using templatePath: ${templatePath} (exists: ${exists ? '✅' : '❌'})`);
-      if (!exists) {
-        throw new Error(`Template file does not exist: ${templatePath}`);
-      }
-    } else {
-      console.error('❌ No valid html_template or file_name found in templateInfo:', templateInfo);
+    if (!isValidTemplate && !templateInfo.file_name) {
       throw new Error('No valid HTML template source found (neither html_template nor file_name)');
+    }
+
+    // 🩹 Patch: Ensure fields are always defined
+    if (!Array.isArray(templateInfo.fields) || templateInfo.fields.length === 0) {
+      templateInfo.fields = ['headline', 'subheadline', 'content', 'cta_text', 'cta_link'];
+      console.log('🛠 Fields were empty or missing. Defaulted to:', templateInfo.fields);
     }
     
     // Update campaign status to RUNNING
