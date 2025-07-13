@@ -887,6 +887,12 @@ function AppContent() {
                           {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1).toLowerCase()}
                         </span>
                       </div>
+                      <div style={{ fontSize: '12px', color: colors.textSecondary, marginTop: '4px' }}>
+                        <div>Template ID: {campaign.templateId || campaign.template_id}</div>
+                        {(campaign.template_data?.original_template_id || campaign.original_template_id) && (
+                          <div>Cloned from Template ID: {campaign.template_data?.original_template_id || campaign.original_template_id}</div>
+                        )}
+                      </div>
                     </div>
                     
                     <div style={{ 

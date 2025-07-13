@@ -531,6 +531,16 @@ const handleSendTestEmail = async (templateId) => {
   }
 };
 
+const [filter, setFilter] = useState("all");
+
+const filteredTemplates = useMemo(() => {
+  return allTemplates.filter(template => {
+    if (filter === "original") return !template.original_template_id && !template.is_system_template;
+    if (filter === "cloned") return !!template.original_template_id;
+    return true; // all
+  });
+}, [allTemplates, filter]);
+
 return (
   <div style={{ 
     maxWidth: 1400, 
@@ -817,10 +827,57 @@ return (
           }}>
             💾 Saved Templates
           </h4>
+          <div style={{ display: 'flex', gap: '8px', margin: '16px 0' }}>
+            <button
+              style={{
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: filter === 'all' ? '2px solid #64ffda' : '1px solid #8892b0',
+                background: filter === 'all' ? 'linear-gradient(135deg, #64ffda, #4cd8b2)' : 'transparent',
+                color: filter === 'all' ? '#1a1a2e' : '#8892b0',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setFilter('all')}
+            >
+              All
+            </button>
+            <button
+              style={{
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: filter === 'original' ? '2px solid #64ffda' : '1px solid #8892b0',
+                background: filter === 'original' ? 'linear-gradient(135deg, #64ffda, #4cd8b2)' : 'transparent',
+                color: filter === 'original' ? '#1a1a2e' : '#8892b0',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setFilter('original')}
+            >
+              Original
+            </button>
+            <button
+              style={{
+                padding: '6px 16px',
+                borderRadius: '8px',
+                border: filter === 'cloned' ? '2px solid #64ffda' : '1px solid #8892b0',
+                background: filter === 'cloned' ? 'linear-gradient(135deg, #64ffda, #4cd8b2)' : 'transparent',
+                color: filter === 'cloned' ? '#1a1a2e' : '#8892b0',
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onClick={() => setFilter('cloned')}
+            >
+              Cloned
+            </button>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {loadingTemplates ? (
               <div style={{ color: '#8892b0', fontSize: '14px', textAlign: 'center', padding: '16px' }}>Loading templates...</div>
-            ) : allTemplates.length === 0 ? (
+            ) : filteredTemplates.length === 0 ? (
               <div style={{ 
                 color: '#8892b0',
                 fontSize: '14px',
@@ -828,10 +885,10 @@ return (
                 padding: '16px',
                 fontStyle: 'italic'
               }}>
-                No saved templates yet
+                No templates found for this filter.
               </div>
             ) : (
-              allTemplates.map((template) => (
+              filteredTemplates.map((template) => (
                 <div
                   key={template.id}
                   style={{
@@ -848,9 +905,46 @@ return (
                     <div style={{ 
                       fontWeight: 'bold',
                       color: '#ffffff',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
                       {template.name}
+                      {template.is_system_template ? (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #8892b0, #6c7b7f)',
+                          color: '#fff',
+                          borderRadius: '8px',
+                          padding: '2px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          border: '1px solid #8892b0',
+                          marginLeft: 4
+                        }}>System Template</span>
+                      ) : template.original_template_id ? (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #64ffda, #4cd8b2)',
+                          color: '#1a1a2e',
+                          borderRadius: '8px',
+                          padding: '2px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          border: '1px solid #4cd8b2',
+                          marginLeft: 4
+                        }}>Cloned from #{template.original_template_id}</span>
+                      ) : (
+                        <span style={{
+                          background: 'linear-gradient(135deg, #23272f, #8892b0)',
+                          color: '#fff',
+                          borderRadius: '8px',
+                          padding: '2px 10px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          border: '1px solid #23272f',
+                          marginLeft: 4
+                        }}>Custom Template</span>
+                      )}
                     </div>
                     <div style={{ 
                       fontSize: '12px',
@@ -863,6 +957,14 @@ return (
                         Subject: {template.subject}
                       </div>
                     )}
+                    <div style={{ fontSize: '12px', color: '#8892b0' }}>
+                      ID: {template.id}
+                      {template.original_template_id && (
+                        <>
+                          {' | '}Cloned from: {template.original_template_id}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {/* Only show Clone for presets (non-numeric IDs) */}
