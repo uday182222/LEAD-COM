@@ -17,7 +17,7 @@ import fs from 'fs';
 import fsp from 'fs/promises';
 import pkg from '@aws-sdk/client-ses';
 const { SESClient, GetAccountAttributesCommand } = pkg;
-import emailService from './email-service.js';
+import emailService, { replaceTemplateVariables } from './email-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -89,13 +89,7 @@ const initializeSESClient = async () => {
   }
 };
 
-/**
- * Replace template variables in HTML content
- * @param {string} htmlContent - HTML template content
- * @param {Object} templateData - Data object with variables to replace
- * @returns {string} Processed HTML content with variables replaced
- */
-const replaceTemplateVariables = (htmlContent, templateData = {}) => {
+export const replaceTemplateVariables = (htmlContent, templateData = {}) => {
   if (!htmlContent || typeof htmlContent !== 'string') return '';
 
   let processedHTML = htmlContent;
