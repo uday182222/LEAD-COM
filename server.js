@@ -952,7 +952,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
 </body>
 </html>`,
         subject: '🚀 Customized AI Solutions for Everyone',
-        type: 'html',
+        type: 'email',
       };
     }
     // Step 3: Default fields fallback
