@@ -921,9 +921,14 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (campaign.template_id) {
       templateInfo = await db.getEmailTemplateById(campaign.template_id);
     }
-    // ✅ Step 1: Read campaign-level template variables from request body
-    const templateVariables = req.body.template_variables || {};
-    console.log("✅ Received templateVariables:", templateVariables);
+    // ✅ Hardcoded template variables
+    const templateVariables = {
+      headline: "🚀 Customized AI Solutions for Everyone",
+      subheadline: "We identify, educate, and develop AI systems that move the needle inside your business",
+      content: "We identify, educate, develop, AI systems, that move the needle inside your business",
+      cta_text: "Get a Demo Call",
+      cta_link: "https://www.aimotion.in"
+    };
     // After you fetch templateInfo by template_id
     if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
       console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Falling back to template 104.`);
