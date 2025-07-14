@@ -673,18 +673,6 @@ const Dashboard = () => {
               />
             </div>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: 4 }}>Subject:</label>
-              <input
-                type="text"
-                name="subject"
-                value={testEmail.subject}
-                onChange={handleTestEmailChange}
-                required
-                style={{ width: '100%', padding: 8, borderRadius: 6, border: `1px solid ${colors.border}` }}
-                placeholder="Test Subject"
-              />
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: 4 }}>Body:</label>
               <textarea
                 name="body"

@@ -992,10 +992,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
       }
       for (const lead of leads) {
         // 2.1 Subject fallback and validation
-        let subject = (campaign.subject || templateInfo.subject || '').trim();
-        if (!subject || subject.toLowerCase() === 'no subject') {
-          subject = 'Untitled Subject'; // fallback protection
-        }
+        let subject = '🚀 Customized AI Solutions for Everyone';
         // 🔁 Merge templateVariables and lead for personalizedVars
         const personalizedVars = { ...templateVariables, ...lead };
         // Use master template HTML
