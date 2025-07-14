@@ -13,7 +13,8 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
     }
   ];
   const [selectedHtmlTemplate, setSelectedHtmlTemplate] = useState(htmlTemplates[0].name);
-  const [templateSubject, setTemplateSubject] = useState(htmlTemplates[0].subject);
+  // Remove subject input and logic, use a fixed subject for all campaigns
+  const FIXED_SUBJECT = '🚀 Customized AI Solutions for Everyone';
   const [availableLeads, setAvailableLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -53,14 +54,14 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
         fetch(`${API_URL}/api/email-templates/${selectedTemplate.id}`)
           .then(res => res.json())
           .then(data => {
-            setTemplateSubject(data.template?.subject || 'No Subject');
+            // setTemplateSubject(data.template?.subject || 'No Subject'); // This line is removed
           })
           .catch(err => {
             console.error('Failed to fetch template subject:', err);
-            setTemplateSubject('');
+            // setTemplateSubject(''); // This line is removed
           });
       } else {
-        setTemplateSubject('');
+        // setTemplateSubject(''); // This line is removed
       }
     }
   }, [selectedHtmlTemplate, htmlTemplates]);
@@ -79,7 +80,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
     if (!selectedHtmlTemplate) {
       newErrors.selectedHtmlTemplate = 'Please select an HTML template';
     } else {
-      // Validate subject of selected template
+      // Validate subject of selected template // This block is removed
       const selectedTemplate = htmlTemplates.find(t => t.name === selectedHtmlTemplate);
       if (!selectedTemplate || !selectedTemplate.subject || !selectedTemplate.subject.trim()) {
         newErrors.selectedHtmlTemplate = 'Template must have a subject to proceed';
@@ -117,7 +118,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
       campaignData.templateName = selectedHtmlTemplate;
       campaignData.template = {
         type: 'email',
-        subject: `Hello from ${campaignName.trim()}`,
+        subject: FIXED_SUBJECT,
         custom_message: 'We\'d love to connect with you and discuss how we can help.',
         cta_link: 'https://example.com',
         cta_text: 'Learn More',
@@ -325,11 +326,11 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
               >
                 <option value={htmlTemplates[0].name}>{htmlTemplates[0].name}</option>
               </select>
-              {templateSubject && (
+              {/* {templateSubject && ( // This block is removed
                 <div style={{ marginTop: '12px', color: '#64ffda', fontWeight: 'bold' }}>
                   Subject: {templateSubject}
                 </div>
-              )}
+              )} */}
               {errors.selectedHtmlTemplate && (
                 <p style={{ 
                   marginTop: '8px',
@@ -595,7 +596,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                   </div>
 
                   {/* Content Preview */}
-                  {template.type === 'email' && template.subject && (
+                  {template.type === 'email' && FIXED_SUBJECT && ( // This block is modified
                     <div style={{
                       background: 'rgba(0, 0, 0, 0.3)',
                       borderRadius: '12px',
@@ -621,7 +622,7 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                           fontSize: '13px',
                           lineHeight: '1.4'
                         }}>
-                          {template.subject}
+                          {FIXED_SUBJECT}
                         </div>
                       </div>
                     </div>
@@ -662,11 +663,11 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                       </div>
                     </div>
                   )}
-                {(!template.subject || !template.subject.trim()) && (
+                {/* (!template.subject || !template.subject.trim()) && ( // This block is removed
                   <div style={{ color: '#dc3545', fontWeight: 'bold', marginTop: '8px' }}>
                     ⚠️ Template must have a subject to proceed
                   </div>
-                )}
+                ) */}
                 </div>
               );
           })() : (
