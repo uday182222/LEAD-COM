@@ -506,7 +506,7 @@ app.get('/api/leads', async (req, res) => {
   try {
     const { limit = 100, offset = 0 } = req.query;
     // Allow up to 2000 leads per request for better UX
-    const maxLimit = Math.min(parseInt(limit) || 100, 2000);
+    const maxLimit = Math.min(parseInt(limit) || 100, 1000);
     const leads = await db.getAllLeads(maxLimit, parseInt(offset));
     const totalCount = await db.getLeadCount();
     
@@ -1237,10 +1237,10 @@ app.get('/api/available-leads', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 500) {
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
       return res.status(400).json({
         success: false,
-        error: 'Limit must be a number between 1 and 500'
+        error: 'Limit must be a number between 1 and 1000'
       });
     }
     
@@ -1511,10 +1511,10 @@ app.get('/api/leads/pending', async (req, res) => {
     const limitNum = parseInt(limit);
     const offsetNum = parseInt(offset);
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 500) {
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
       return res.status(400).json({
         success: false,
-        error: 'Limit must be a number between 1 and 500'
+        error: 'Limit must be a number between 1 and 1000'
       });
     }
     
