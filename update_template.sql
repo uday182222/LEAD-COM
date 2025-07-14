@@ -20,7 +20,7 @@ SET html_template = $$
     <h2 style="font-size: 18px; color: #1595e7; margin: 10px 0;">{subheadline}</h2>
 
     <p style="font-size: 16px; color: #555555; line-height: 1.5; margin: 20px 0;">
-      {content}
+      
     </p>
 
     <a href="{cta_link}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #1595e7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">

@@ -16,7 +16,6 @@ UPDATE email_templates SET html_template = $$SET html_template = $$
   <img src="https://cloudfilesdm.com/postcards/Motion_Falcon_Logo_Set-02-0c9c3be2.png" width="100" alt="Logo" />
   <h1>{headline}</h1>
   <h2 style="color: #64ffda;">{subheadline}</h2>
-  <p>{content}</p>
   <a href="{cta_link}" style="display: inline-block; padding: 12px 24px; background: #1595e7; color: #fff; border-radius: 8px; text-decoration: none; font-weight: bold;">{cta_text}</a>
 </body>
 </html>
