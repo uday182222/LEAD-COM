@@ -954,7 +954,7 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
   </div>
 </body>
 </html>`,
-        type: 'html', // ✅ ADD THIS LINE
+        type: 'html', // ✅ This fixes everything
       };
     }
     // Step 3: Default fields fallback
