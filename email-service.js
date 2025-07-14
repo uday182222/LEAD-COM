@@ -182,7 +182,7 @@ const sendHTMLEmail = async (to, subject, options = {}, templateData = {}) => {
     console.log(`[Used Variables]:`, templateData);
 
     const params = {
-      Source: EMAIL_FROM,
+      Source: 'AI-Services <team@motionfalcon.com>',
       Destination: {
         ToAddresses: [to],
       },
