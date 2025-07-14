@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 
 const TemplateBuilder = ({ selectedFields, onTemplateComplete }) => {
-  // Add subject state
-  const [subject, setSubject] = useState('');
+  // Remove subject state and input field from TemplateBuilder
 
   // ... other template building logic ...
 
   const handleComplete = () => {
     // Collect template data here (e.g., from state)
     const templateData = {
-      subject,
       // ...fill with other actual template data...
     };
     onTemplateComplete(templateData);
