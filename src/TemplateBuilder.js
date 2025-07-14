@@ -3,8 +3,10 @@ import { useParams } from 'react-router-dom';
 
 const TemplateBuilder = () => {
   const { campaignId } = useParams();
+  console.log("campaignId from useParams:", campaignId);
 
   const startCampaign = async () => {
+    if (!campaignId) return;
     console.log("📤 Starting campaign with hardcoded template variables");
     try {
       const response = await fetch(`/api/campaigns/${campaignId}/start`, {
@@ -12,7 +14,6 @@ const TemplateBuilder = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        // ⛔ Do NOT send template_variables anymore
         body: JSON.stringify({})
       });
 
@@ -28,7 +29,31 @@ const TemplateBuilder = () => {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <button onClick={startCampaign}>
+      {!campaignId && (
+        <div style={{ color: '#ff5252', marginBottom: '1rem', fontWeight: 'bold' }}>
+          ⚠️ Campaign ID is missing from the URL. Please navigate from the campaign list.
+        </div>
+      )}
+      <button
+        onClick={startCampaign}
+        disabled={!campaignId}
+        style={{
+          background: '#1595e7',
+          color: '#fff',
+          fontWeight: 'bold',
+          fontSize: '1.1rem',
+          padding: '14px 32px',
+          border: 'none',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(21,149,231,0.15)',
+          cursor: campaignId ? 'pointer' : 'not-allowed',
+          marginTop: '2rem',
+          opacity: campaignId ? 1 : 0.6,
+          transition: 'background 0.2s',
+        }}
+        onMouseOver={e => { if (campaignId) e.currentTarget.style.background = '#0d7bc1'; }}
+        onMouseOut={e => { if (campaignId) e.currentTarget.style.background = '#1595e7'; }}
+      >
         🚀 Start Campaign with Hardcoded Template
       </button>
     </div>
