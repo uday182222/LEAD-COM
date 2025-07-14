@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 
 const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
   const [campaignName, setCampaignName] = useState('');
-  const [selectedHtmlTemplate, setSelectedHtmlTemplate] = useState('');
-  const [htmlTemplates, setHtmlTemplates] = useState([]);
+  // Remove dynamic fetching of templates and set a single fixed template
+  const htmlTemplates = [
+    {
+      id: 1,
+      name: 'Master Template (Original)',
+      subject: 'Hello from Master Template',
+      type: 'email',
+      fields: ['headline', 'subheadline', 'cta_text', 'cta_link']
+    }
+  ];
+  const [selectedHtmlTemplate, setSelectedHtmlTemplate] = useState(htmlTemplates[0].name);
+  const [templateSubject, setTemplateSubject] = useState(htmlTemplates[0].subject);
   const [availableLeads, setAvailableLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [templateSubject, setTemplateSubject] = useState('');
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -318,41 +327,21 @@ const CampaignForm = ({ onSubmit, onCancel, uploadedLeads = [] }) => {
                 id="selectedHtmlTemplate"
                 name="selectedHtmlTemplate"
                 value={selectedHtmlTemplate}
-                onChange={(e) => {
-                  setSelectedHtmlTemplate(e.target.value);
-                  if (errors.selectedHtmlTemplate) {
-                    setErrors(prev => ({ ...prev, selectedHtmlTemplate: '' }));
-                  }
-                }}
+                onChange={(e) => setSelectedHtmlTemplate(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '12px',
                   background: 'rgba(136, 146, 176, 0.1)',
-                  border: errors.selectedHtmlTemplate ? '1px solid #dc3545' : '1px solid rgba(136, 146, 176, 0.3)',
+                  border: '1px solid rgba(136, 146, 176, 0.3)',
                   borderRadius: '8px',
                   color: '#ffffff',
                   fontSize: '14px',
                   outline: 'none',
                   transition: 'border-color 0.2s ease'
                 }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#64ffda';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = errors.selectedHtmlTemplate ? '#dc3545' : 'rgba(136, 146, 176, 0.3)';
-                }}
+                disabled
               >
-                <option value="">Choose an HTML template...</option>
-                {htmlTemplates.map((template) => (
-                  <option key={template.id} value={template.name}>
-                    {template.name}
-                    {template.original_template_id
-                      ? ` (Cloned from #${template.original_template_id})`
-                      : template.is_system_template
-                      ? ` (System)`
-                      : ` (Original)`}
-                  </option>
-                ))}
+                <option value={htmlTemplates[0].name}>{htmlTemplates[0].name}</option>
               </select>
               {templateSubject && (
                 <div style={{ marginTop: '12px', color: '#64ffda', fontWeight: 'bold' }}>
