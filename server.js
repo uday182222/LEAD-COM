@@ -930,8 +930,28 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     };
     // After you fetch templateInfo by template_id
     if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
-      console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Falling back to template 104.`);
-      templateInfo = await db.getEmailTemplateById(104);
+      console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Using hardcoded fallback template.`);
+      templateInfo = {
+        html_template: `<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="x-apple-disable-message-reformatting" />
+  <link href="https://fonts.googleapis.com/css?family=Fira+Sans:ital,wght@0,400;0,500;0,700" rel="stylesheet" />
+  <title>🚀 Customized AI Solutions for Everyone</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Fira Sans', sans-serif; background-color: #f9f9f9;">
+  <div style="max-width: 600px; margin: 40px auto; padding: 40px 20px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); text-align: center;">
+    <img src="https://cloudfilesdm.com/postcards/Motion_Falcon_Logo_Set-02-0c9c3be2.png" alt="Logo" width="120" style="margin-bottom: 20px;" />
+    <h1 style="font-size: 24px; color: #333333;">🚀 Customized AI Solutions for Everyone</h1>
+    <h2 style="font-size: 18px; color: #1595e7; margin: 10px 0;">We identify, educate, and develop customized AI systems for every need</h2>
+    <a href="https://www.aimotion.in" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #1595e7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Know More</a>
+  </div>
+</body>
+</html>`
+      };
     }
     // Step 3: Default fields fallback
     if (!templateInfo.fields || templateInfo.fields.length === 0) {
