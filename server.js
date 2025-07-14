@@ -932,6 +932,9 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     if (!templateInfo?.html_template || templateInfo.html_template.trim().length < 100) {
       console.warn(`⚠️ Template ${templateInfo?.id} is missing or too short. Using hardcoded fallback template.`);
       templateInfo = {
+        id: 104,
+        name: 'Fallback',
+        subject: '🚀 Customized AI Solutions for Everyone',
         html_template: `<!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -950,7 +953,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     <a href="https://www.aimotion.in" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #1595e7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Know More</a>
   </div>
 </body>
-</html>`
+</html>`,
+        type: 'html', // ✅ ADD THIS LINE
       };
     }
     // Step 3: Default fields fallback
