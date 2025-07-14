@@ -18,6 +18,7 @@ function AppContent() {
   const [loading, setLoading] = useState(false);
   const [uploadedLeads, setUploadedLeads] = useState([]); // Track uploaded leads throughout workflow
   const [pendingLeadsCount, setPendingLeadsCount] = useState(0);
+  const [activeCampaignId, setActiveCampaignId] = useState(null);
   const { colors, isDarkMode, toggleTheme } = useTheme();
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -189,20 +190,19 @@ function AppContent() {
 
   const startCampaign = async (campaignId) => {
     try {
+      const templateVariables = {
+        headline: "🚀 Supercharge Your Growth",
+        subheadline: "AI-powered outreach that works",
+        content: "Our system helps you reach more qualified leads at scale with beautiful emails and personalization.",
+        cta_text: "Start Now",
+        cta_link: "https://motionfalcon.com/start"
+      };
       const response = await fetch(`${API_URL}/api/campaigns/${campaignId}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          template_variables: {
-            headline: "🚀 Unlock Growth with Motion Falcon",
-            subheadline: "AI-powered email marketing for startups",
-            content: "We help you reach more leads with smart targeting, personalized content, and automated campaigns.",
-            cta_text: "Try It Now",
-            cta_link: "https://motionfalcon.com/get-started"
-          }
-        })
+        body: JSON.stringify({ template_variables: templateVariables })
       });
 
       if (!response.ok) {
@@ -762,6 +762,7 @@ function AppContent() {
               </button>
             </div>
             <TemplateBuilder
+              campaignId={activeCampaignId}
               selectedFields={selectedFields}
               onTemplateComplete={handleTemplateComplete}
             />

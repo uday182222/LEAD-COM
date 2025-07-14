@@ -1,9 +1,7 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
 
-const TemplateBuilder = () => {
-  const { campaignId } = useParams();
-  console.log("campaignId from useParams:", campaignId);
+const TemplateBuilder = ({ campaignId }) => {
+  console.log("campaignId from prop:", campaignId);
 
   const startCampaign = async () => {
     if (!campaignId) return;
@@ -31,7 +29,7 @@ const TemplateBuilder = () => {
     <div style={{ padding: '2rem' }}>
       {!campaignId && (
         <div style={{ color: '#ff5252', marginBottom: '1rem', fontWeight: 'bold' }}>
-          ⚠️ Campaign ID is missing from the URL. Please navigate from the campaign list.
+          ⚠️ Campaign ID is missing. Please create a campaign first.
         </div>
       )}
       <button
