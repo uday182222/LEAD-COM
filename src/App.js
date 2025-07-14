@@ -18,7 +18,6 @@ function AppContent() {
   const [loading, setLoading] = useState(false);
   const [uploadedLeads, setUploadedLeads] = useState([]); // Track uploaded leads throughout workflow
   const [pendingLeadsCount, setPendingLeadsCount] = useState(0);
-  const [activeCampaignId, setActiveCampaignId] = useState(null);
   const { colors, isDarkMode, toggleTheme } = useTheme();
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -762,7 +761,6 @@ function AppContent() {
               </button>
             </div>
             <TemplateBuilder
-              campaignId={activeCampaignId}
               selectedFields={selectedFields}
               onTemplateComplete={handleTemplateComplete}
             />
