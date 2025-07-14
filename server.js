@@ -924,9 +924,8 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
     // ✅ Hardcoded template variables
     const templateVariables = {
       headline: "🚀 Customized AI Solutions for Everyone",
-      subheadline: "We identify, educate, and develop AI systems that move the needle inside your business",
-      content: "We identify, educate, develop, AI systems, that move the needle inside your business",
-      cta_text: "Get a Demo Call",
+      subheadline: "We identify, educate, and develop customized AI systems for every need",
+      cta_text: "Know More",
       cta_link: "https://www.aimotion.in"
     };
     // After you fetch templateInfo by template_id
