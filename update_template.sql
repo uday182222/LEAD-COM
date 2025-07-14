@@ -1,3 +1,5 @@
+UPDATE email_templates
+SET html_template = $$
 <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -6,31 +8,26 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="x-apple-disable-message-reformatting" />
   <link href="https://fonts.googleapis.com/css?family=Fira+Sans:ital,wght@0,400;0,500;0,700" rel="stylesheet" />
-  <title>Customized AI Solutions for Everyone</title>
+  <title>{headline}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Fira Sans', sans-serif; background-color: #f9f9f9;">
   <div style="max-width: 600px; margin: 40px auto; padding: 40px 20px; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); text-align: center;">
 
-    <!-- Motion Falcon Logo -->
     <img src="https://cloudfilesdm.com/postcards/Motion_Falcon_Logo_Set-02-0c9c3be2.png" alt="Logo" width="120" style="margin-bottom: 20px;" />
 
-    <!-- Headline -->
-    <h1 style="font-size: 24px; color: #333333; font-weight: bold; margin-bottom: 10px;">🚀 Customized AI Solutions for Everyone</h1>
+    <h1 style="font-size: 24px; color: #333333;">{headline}</h1>
 
-    <!-- Subheadline -->
-    <div style="font-size: 18px; color: #1595e7; font-weight: bold; margin-bottom: 18px;">
-      We identify, educate and develop customised AI systems for every need.
-    </div>
+    <h2 style="font-size: 18px; color: #1595e7; margin: 10px 0;">{subheadline}</h2>
 
-    <!-- Content -->
     <p style="font-size: 16px; color: #555555; line-height: 1.5; margin: 20px 0;">
       {content}
     </p>
 
-    <!-- CTA Button -->
-    <a href="{cta_link}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #1595e7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
-      Know More
+    <a href="{cta_link}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #1595e7; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+      {cta_text}
     </a>
   </div>
 </body>
-</html> 
+</html>
+$$
+WHERE id = 104; 

@@ -905,13 +905,30 @@ const clearAllPendingLeads = async () => {
 const createEmailTemplate = async (template) => {
   const client = await pool.connect();
   try {
+    let html_template = template.html_template;
+    let fields = template.fields;
+    // Fallback to working template if html_template is missing or too short
+    if (!html_template || html_template.trim().length < 100) {
+      const fallback = await client.query('SELECT html_template, fields FROM email_templates WHERE id = 104');
+      if (fallback.rows.length > 0) {
+        html_template = fallback.rows[0].html_template;
+        fields = fallback.rows[0].fields;
+      }
+    }
     const subject = template.subject?.trim() || 'Untitled Subject';
     const query = `
-      INSERT INTO email_templates (name, html_template, type, subject)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO email_templates (name, html_template, type, subject, fields, original_template_id)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *;
     `;
-    const values = [template.name, template.html_template, template.type || 'email', subject];
+    const values = [
+      template.name,
+      html_template,
+      template.type || 'email',
+      subject,
+      JSON.stringify(fields || []),
+      template.original_template_id || null
+    ];
     const result = await client.query(query, values);
     return result.rows[0];
   } finally {
