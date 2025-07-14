@@ -223,10 +223,10 @@ const [subject, setSubject] = useState('');
 
 // Add state hooks at the top of the component
 const [headline, setHeadline] = useState('');
-const [subheadline, setSubheadline] = useState('');
-const [content, setContent] = useState('');
-const [ctaText, setCtaText] = useState('');
-const [ctaLink, setCtaLink] = useState('');
+const [subheadline, setSubheadline] = useState('customised ai solution for startups');
+const [content, setContent] = useState('we identify educate, develop, ai systems, that move the needle inside your buisness');
+const [ctaText, setCtaText] = useState('get a demo call');
+const [ctaLink, setCtaLink] = useState('www.motionfalcon.com');
 
 // When a preset is selected, initialize presetVars with default or empty values for its fields
 const handlePresetSelect = (preset) => {
