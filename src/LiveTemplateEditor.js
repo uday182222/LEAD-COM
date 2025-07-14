@@ -77,13 +77,6 @@ const DEFAULT_HTML = `
                </td>
               </tr>
              </table>
-             <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
-              <tr>
-               <td align="center" valign="top" style="padding: 0px 0px 20px 0px; height: auto;">
-                <div style="font-size:16px;line-height:24px;text-align:center;color:#ffffff;font-family:'Fira Sans', Arial, Helvetica, sans-serif;font-weight:400;">{content}</div>
-               </td>
-              </tr>
-             </table>
              <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="min-width: 100%;">
               <tr>
                <th valign="top" align="center" style="text-align: center; font-weight: normal;">
