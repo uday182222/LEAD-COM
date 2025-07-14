@@ -999,6 +999,9 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         const masterHTML = templateInfo.html_template;
         const renderedHTML = replaceTemplateVariables(masterHTML, personalizedVars);
         const renderedSubject = replaceTemplateVariables(subject, personalizedVars);
+        // DEBUG: Log the full HTML being sent
+        console.log('=== FINAL HTML TO SEND ===');
+        console.log(renderedHTML);
         if (!renderedHTML || !renderedHTML.trim().startsWith('<')) {
           console.warn("❌ Skipping lead: invalid HTML", { leadId: lead.id });
           continue;
