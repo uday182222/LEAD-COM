@@ -1017,6 +1017,10 @@ app.post('/api/campaigns/:id/start', async (req, res) => {
         const personalizedVars = { ...templateVariables, ...lead };
         // Use master template HTML
         const masterHTML = templateInfo.html_template;
+        // Guard: Warn if template includes deprecated {content}
+        if (masterHTML.includes('{content}')) {
+          console.warn('⚠️ Warning: Template includes deprecated {content} variable.');
+        }
         const renderedHTML = replaceTemplateVariables(masterHTML, personalizedVars);
         const renderedSubject = replaceTemplateVariables(subject, personalizedVars);
         // DEBUG: Log the full HTML being sent
