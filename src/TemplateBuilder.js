@@ -15,24 +15,6 @@ const TemplateBuilder = ({ selectedFields, onTemplateComplete }) => {
 
   return (
     <div style={{ padding: '2rem' }}>
-      {/* Editable subject field */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <label htmlFor="template-subject" style={{ fontWeight: 'bold', marginRight: '1rem' }}>Subject:</label>
-        <input
-          id="template-subject"
-          type="text"
-          value={subject}
-          onChange={e => setSubject(e.target.value)}
-          placeholder="Enter email subject..."
-          style={{
-            padding: '8px 12px',
-            borderRadius: '6px',
-            border: '1px solid #ccc',
-            fontSize: '1rem',
-            width: '320px',
-          }}
-        />
-      </div>
       {/* ...template builder UI... */}
       <button
         onClick={handleComplete}
