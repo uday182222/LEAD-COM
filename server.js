@@ -504,9 +504,9 @@ app.post('/api/save-leads', async (req, res) => {
 // Get all leads endpoint (for debugging/testing)
 app.get('/api/leads', async (req, res) => {
   try {
-    const { limit = 100, offset = 0 } = req.query;
+    const { limit = 1000, offset = 0 } = req.query;
     // Allow up to 2000 leads per request for better UX
-    const maxLimit = Math.min(parseInt(limit) || 100, 1000);
+    const maxLimit = Math.max(Math.min(parseInt(limit) || 1000, 1000), 1000);
     const leads = await db.getAllLeads(maxLimit, parseInt(offset));
     const totalCount = await db.getLeadCount();
     
@@ -1232,15 +1232,15 @@ app.get('/api/templates', async (req, res) => {
 // Get available leads for campaign selection
 app.get('/api/available-leads', async (req, res) => {
   try {
-    const { limit = 100, offset = 0 } = req.query;
+    const { limit = 1000, offset = 0 } = req.query;
     
-    const limitNum = parseInt(limit);
+    const limitNum = Math.max(parseInt(limit) || 1000, 1000);
     const offsetNum = parseInt(offset);
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
+    if (isNaN(limitNum) || limitNum < 1000 || limitNum > 1000) {
       return res.status(400).json({
         success: false,
-        error: 'Limit must be a number between 1 and 1000'
+        error: 'Limit must be exactly 1000'
       });
     }
     
@@ -1506,15 +1506,15 @@ app.post('/api/ses-config', async (req, res) => {
 // Get pending leads (leads that haven't been emailed yet)
 app.get('/api/leads/pending', async (req, res) => {
   try {
-    const { limit = 100, offset = 0 } = req.query;
+    const { limit = 1000, offset = 0 } = req.query;
     
-    const limitNum = parseInt(limit);
+    const limitNum = Math.max(parseInt(limit) || 1000, 1000);
     const offsetNum = parseInt(offset);
     
-    if (isNaN(limitNum) || limitNum < 1 || limitNum > 1000) {
+    if (isNaN(limitNum) || limitNum < 1000 || limitNum > 1000) {
       return res.status(400).json({
         success: false,
-        error: 'Limit must be a number between 1 and 1000'
+        error: 'Limit must be exactly 1000'
       });
     }
     
